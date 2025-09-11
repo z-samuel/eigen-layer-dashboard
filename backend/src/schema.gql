@@ -1,0 +1,94 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type HealthStatus {
+  status: String!
+  timestamp: String!
+  service: String!
+}
+
+type EigenPod {
+  id: Int!
+  eigenPod: String!
+  podOwner: String!
+  blockNumber: Int!
+  transactionHash: String!
+  logIndex: Int!
+  createdAt: String!
+}
+
+type EigenPodResponse {
+  pods: [EigenPod!]!
+  total: Int!
+}
+
+type EigenPodStatus {
+  totalEvents: Int!
+  lastIndexedBlock: Int!
+  isConnected: Boolean!
+}
+
+type StakedEthEvent {
+  id: Int!
+  pubkey: String!
+  withdrawalCredentials: String
+  amount: String!
+  signature: String!
+  depositIndex: String
+  blockNumber: Int!
+  blockTimestamp: Int!
+  transactionHash: String!
+  logIndex: Int!
+  createdAt: String!
+}
+
+type StakedEthConnection {
+  events: [StakedEthEvent!]!
+  total: Int!
+}
+
+type StakedEthStats {
+  totalEvents: Int!
+  totalAmount: String!
+  lastBlock: Int!
+}
+
+type StakedEthByBlock {
+  blockNumber: Int!
+  blockTimestamp: Int!
+  totalDeposited: String!
+  eventCount: Int!
+}
+
+type Query {
+  health: HealthStatus!
+  eigenPods(skip: Int! = 0, limit: Int! = 100, where: EigenPodWhereInput): EigenPodResponse!
+  eigenPodStatus: EigenPodStatus!
+  stakedEth(skip: Int! = 0, limit: Int! = 100, where: StakedEthWhereInput): StakedEthConnection!
+  stakedEthStats: StakedEthStats!
+  stakedEthAnalytics(input: StakedEthAnalyticsInput!): [StakedEthByBlock!]!
+}
+
+input EigenPodWhereInput {
+  ownerAddress: String
+  eigenPodAddress: String
+  validatorPublicKey: String
+  startBlock: Int
+  endBlock: Int
+}
+
+input StakedEthWhereInput {
+  pubkey: String
+  withdrawalCredentials: String
+  blockNumber: Int
+  startBlock: Int
+  endBlock: Int
+}
+
+input StakedEthAnalyticsInput {
+  blockNumber: Int
+  startBlock: Int
+  endBlock: Int
+  summary: Boolean = false
+}

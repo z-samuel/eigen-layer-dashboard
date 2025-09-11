@@ -1,0 +1,37 @@
+{
+  "name": "eigen-layer-dashboard",
+  "version": "1.0.0",
+  "description": "EigenLayer Dashboard Monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "indexer",
+    "lib"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn workspace @eigen-layer/backend dev\" \"yarn workspace @eigen-layer/frontend dev\"",
+    "build": "yarn workspace @eigen-layer-dashboard/lib build && yarn workspace @eigen-layer/backend build && yarn workspace @eigen-layer/frontend build && yarn workspace @eigen-layer/indexer build",
+    "test": "yarn workspace @eigen-layer/backend test && yarn workspace @eigen-layer/frontend test",
+    "clean": "yarn workspace @eigen-layer-dashboard/lib clean && yarn workspace @eigen-layer/backend clean && yarn workspace @eigen-layer/frontend clean && yarn workspace @eigen-layer/indexer clean",
+    "backend:dev": "yarn workspace @eigen-layer/backend dev",
+    "frontend:dev": "yarn workspace @eigen-layer/frontend dev",
+    "lib:build": "yarn workspace @eigen-layer-dashboard/lib build",
+    "backend:build": "yarn workspace @eigen-layer/backend build",
+    "frontend:build": "yarn workspace @eigen-layer/frontend build",
+    "indexer:build": "yarn workspace @eigen-layer/indexer build",
+    "indexer:dev": "yarn workspace @eigen-layer/indexer dev",
+    "indexer:start": "yarn workspace @eigen-layer/indexer start",
+    "backend:lint": "yarn workspace @eigen-layer/backend lint",
+    "frontend:lint": "yarn workspace @eigen-layer/frontend lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1"
+  },
+  "packageManager": "yarn@1.22.22"
+}
