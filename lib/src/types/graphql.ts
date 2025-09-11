@@ -67,3 +67,38 @@ export interface EigenPodStatus {
 export interface HealthResponse {
   health: HealthStatus;
 }
+
+// Strategy types
+export interface Token {
+  id: string;
+  address: string;
+  name: string;
+  symbol: string;
+}
+
+export interface Strategy {
+  id: string;
+  address: string;
+  token: Token;
+  totalShares: string;
+  exchangeRate: string;
+  operatorSetCount: number;
+  operatorCount: number;
+  stakerCount: number;
+  avsCount: number;
+  emitsExchangeRate: boolean;
+  isInDepositWhitelist: boolean;
+  withdrawalDelayBlocks: number;
+  thirdPartyTransfersForbidden: boolean;
+  whitelistBlockNumber: number;
+  whitelistBlockTimestamp: number;
+  whitelistTransactionHash: string;
+  createdAtBlockNumber: number;
+  lastUpdateBlockNumber: number;
+  lastUpdateBlockTimestamp: number;
+}
+
+export interface StrategyResponse {
+  strategies: Strategy[];
+  total: number;
+}

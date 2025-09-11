@@ -8,17 +8,14 @@ import {
   CircularProgress,
   Card,
   CardContent,
-  CardHeader,
-  Grid,
   Chip,
-  Button,
-  TextField,
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  TextField,
+  Button
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
 import { EigenPod, EigenPodResponse, EigenPodWhereInput } from '@eigen-layer-dashboard/lib';
 import { queryEigenPods } from '../utils/graphql';
 import EigenPodTable from './EigenPodTable';
@@ -28,24 +25,29 @@ const EigenPodDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  const [filters, setFilters] = useState<EigenPodWhereInput>({});
   const [skip, setSkip] = useState<number>(0);
-  const [limit, setLimit] = useState<number>(5000);
+  const [limit, setLimit] = useState<number>(50);
   const [total, setTotal] = useState<number>(0);
+  const [podOwnerFilter, setPodOwnerFilter] = useState<string>('');
 
   const toggleHeaderVisibility = () => {
     setIsHeaderVisible(!isHeaderVisible);
   };
 
-  const fetchEigenPods = async (currentSkip: number = 0, currentLimit: number = 5000, currentFilters: EigenPodWhereInput = {}) => {
+  const fetchEigenPods = async (currentSkip: number = 0, currentLimit: number = 50, currentPodOwnerFilter: string = '') => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log('Fetching EigenPods with params:', { currentSkip, currentLimit, currentFilters });
+      console.log('Fetching EigenPods with params:', { currentSkip, currentLimit, currentPodOwnerFilter });
+      
+      // Build where clause for filtering
+      const where: EigenPodWhereInput | undefined = currentPodOwnerFilter.trim() 
+        ? { ownerAddress: currentPodOwnerFilter.trim() }
+        : undefined;
       
       // Now try the actual query
-      const response: EigenPodResponse = await queryEigenPods(currentSkip, currentLimit, currentFilters);
+      const response: EigenPodResponse = await queryEigenPods(currentSkip, currentLimit, where);
       console.log('EigenPods response:', response);
       setEigenPods(response.pods);
       setTotal(response.total);
@@ -58,13 +60,8 @@ const EigenPodDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchEigenPods(skip, limit, filters);
-  }, [skip, limit, filters]);
-
-  const handleFilterChange = (newFilters: EigenPodWhereInput) => {
-    setFilters(newFilters);
-    setSkip(0); // Reset to first page when filters change
-  };
+    fetchEigenPods(skip, limit, podOwnerFilter);
+  }, [skip, limit, podOwnerFilter]);
 
   const handlePageChange = (page: number) => {
     const newSkip = (page - 1) * limit;
@@ -74,6 +71,16 @@ const EigenPodDashboard: React.FC = () => {
   const handleLimitChange = (newLimit: number) => {
     setLimit(newLimit);
     setSkip(0); // Reset to first page when limit changes
+  };
+
+  const handlePodOwnerFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPodOwnerFilter(event.target.value);
+    setSkip(0); // Reset to first page when filter changes
+  };
+
+  const handleClearFilter = () => {
+    setPodOwnerFilter('');
+    setSkip(0); // Reset to first page when clearing filter
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -102,80 +109,45 @@ const EigenPodDashboard: React.FC = () => {
               )}
             </Box>
 
-            {/* Filters Section */}
-            <Card>
-              <CardHeader title="Filters" />
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField
-                      fullWidth
-                      label="Owner Address"
-                      placeholder="0x..."
-                      value={filters.ownerAddress || ''}
-                      onChange={(e) => handleFilterChange({ ...filters, ownerAddress: e.target.value || undefined })}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField
-                      fullWidth
-                      label="EigenPod Address"
-                      placeholder="0x..."
-                      value={filters.eigenPodAddress || ''}
-                      onChange={(e) => handleFilterChange({ ...filters, eigenPodAddress: e.target.value || undefined })}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField
-                      fullWidth
-                      label="Start Block"
-                      type="number"
-                      placeholder="e.g., 18000000"
-                      value={filters.startBlock || ''}
-                      onChange={(e) => handleFilterChange({ ...filters, startBlock: e.target.value ? parseInt(e.target.value) : undefined })}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField
-                      fullWidth
-                      label="End Block"
-                      type="number"
-                      placeholder="e.g., 19000000"
-                      value={filters.endBlock || ''}
-                      onChange={(e) => handleFilterChange({ ...filters, endBlock: e.target.value ? parseInt(e.target.value) : undefined })}
-                    />
-                  </Grid>
-                </Grid>
-                <Box sx={{ mt: 2 }}>
-                  <Button 
-                    variant="outlined" 
-                    onClick={() => handleFilterChange({})}
-                    startIcon={<Refresh />}
-                  >
-                    Clear Filters
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
 
             {/* Pagination Controls */}
             <Card>
               <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>Items per page</InputLabel>
-                    <Select
-                      value={limit}
-                      label="Items per page"
-                      onChange={(e) => handleLimitChange(parseInt(e.target.value as string))}
-                    >
-                      <MenuItem value={100}>100</MenuItem>
-                      <MenuItem value={500}>500</MenuItem>
-                      <MenuItem value={1000}>1,000</MenuItem>
-                      <MenuItem value={5000}>5,000</MenuItem>
-                      <MenuItem value={10000}>10,000</MenuItem>
-                    </Select>
-                  </FormControl>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                      <InputLabel>Items per page</InputLabel>
+                      <Select
+                        value={limit}
+                        label="Items per page"
+                        onChange={(e) => handleLimitChange(parseInt(e.target.value as string))}
+                      >
+                        <MenuItem value={20}>20</MenuItem>
+                        <MenuItem value={50}>50</MenuItem>
+                        <MenuItem value={100}>100</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    <TextField
+                      size="small"
+                      label="Filter by Pod Owner"
+                      placeholder="Enter address..."
+                      value={podOwnerFilter}
+                      onChange={handlePodOwnerFilterChange}
+                      sx={{ minWidth: 250 }}
+                    />
+                    
+                    {podOwnerFilter && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleClearFilter}
+                        sx={{ minWidth: 80 }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </Stack>
                   
                   <Box display="flex" alignItems="center" gap={2}>
                     <Chip 

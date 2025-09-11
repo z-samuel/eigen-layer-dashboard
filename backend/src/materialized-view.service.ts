@@ -51,7 +51,7 @@ export class MaterializedViewService {
           MAX(blockTimestamp) as lastEventTimestamp
         FROM staked_eth_events 
         GROUP BY blockNumber, blockTimestamp
-        ORDER BY blockNumber ASC
+        ORDER BY blockNumber DESC
       `;
       
       await this.run(createViewSQL);
@@ -94,7 +94,7 @@ export class MaterializedViewService {
           lastEventTimestamp
         FROM staked_eth_analytics_mv 
         WHERE blockNumber >= ? AND blockNumber <= ?
-        ORDER BY blockNumber ASC
+        ORDER BY blockNumber DESC
       `;
       
       const results = await this.all(sql, [startBlock, endBlock]);

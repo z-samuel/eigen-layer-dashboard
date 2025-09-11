@@ -231,17 +231,17 @@ const StakedEthDashboard: React.FC = () => {
                   <CardHeader title="Quick Ranges" />
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Stack spacing={2}>
-                      <Button variant="outlined" onClick={() => handleQuickRange(1)}>
-                        Last Hour
-                      </Button>
-                      <Button variant="outlined" onClick={() => handleQuickRange(6)}>
-                        Last 6 Hours
-                      </Button>
                       <Button variant="outlined" onClick={() => handleQuickRange(24)}>
-                        Last 24 Hours
+                        LAST 24 HOURS
                       </Button>
                       <Button variant="outlined" onClick={() => handleQuickRange(168)}>
-                        Last Week
+                        LAST WEEK
+                      </Button>
+                      <Button variant="outlined" onClick={() => handleQuickRange(720)}>
+                        LAST 30 DAYS
+                      </Button>
+                      <Button variant="outlined" onClick={() => handleQuickRange(8760)}>
+                        LAST 365 DAYS
                       </Button>
                     </Stack>
                   </CardContent>

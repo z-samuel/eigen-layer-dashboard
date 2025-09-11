@@ -306,7 +306,7 @@ export class StakedEthService {
     try {
       const results: StakedEthByBlock[] = [];
       
-      for (let blockNumber = startBlock; blockNumber <= endBlock; blockNumber++) {
+      for (let blockNumber = endBlock; blockNumber >= startBlock; blockNumber--) {
         const blockData = await this.getStakedEthByBlock(blockNumber);
         if (blockData) {
           results.push(blockData);
@@ -334,7 +334,7 @@ export class StakedEthService {
           amount
         FROM staked_eth_events 
         WHERE blockNumber >= ? AND blockNumber <= ?
-        ORDER BY blockNumber ASC, logIndex ASC
+        ORDER BY blockNumber DESC, logIndex DESC
       `;
       
       const events = await this.all(sql, [startBlock, endBlock]);
@@ -371,7 +371,8 @@ export class StakedEthService {
         });
       }
 
-      return results;
+      // Sort by block number in descending order (most recent first)
+      return results.sort((a, b) => b.blockNumber - a.blockNumber);
     } catch (error) {
       console.error('Error getting staked ETH summary by block range:', error);
       throw new HttpException(

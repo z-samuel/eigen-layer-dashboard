@@ -361,7 +361,7 @@ The Staked ETH Analytics queries use a materialized view for **dramatic performa
                                 ▼                        ▼
                        ┌──────────────────┐    ┌─────────────────┐
                        │   Fallback to    │    │   SQLite DB     │
-                       │   Original Query │    │   (Pre-aggregated)│
+                       │   Original Query │    │ (Pre-aggregated)│
                        └──────────────────┘    └─────────────────┘
 ```
 

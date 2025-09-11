@@ -15,7 +15,8 @@ import {
   Alert,
   Chip,
   IconButton,
-  Tooltip
+  Tooltip,
+  Link
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { EigenPod } from '@eigen-layer-dashboard/lib';
@@ -48,8 +49,20 @@ const EigenPodTable: React.FC<EigenPodTableProps> = ({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  const getEtherscanUrl = (txHash: string) => {
+    return `https://etherscan.io/tx/${txHash}`;
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    const dateStr = date.toLocaleDateString();
+    const timeStr = date.toLocaleTimeString('en-US', { 
+      hour12: true, 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+    return `${dateStr} ${timeStr}`;
   };
 
   if (loading) {
@@ -107,14 +120,13 @@ const EigenPodTable: React.FC<EigenPodTableProps> = ({
               <TableCell><strong>Pod Owner</strong></TableCell>
               <TableCell><strong>Block Number</strong></TableCell>
               <TableCell><strong>Transaction Hash</strong></TableCell>
-              <TableCell><strong>Log Index</strong></TableCell>
               <TableCell><strong>Created At</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography variant="body1" color="text.secondary">
                     No EigenPod events found
                   </Typography>
@@ -150,15 +162,23 @@ const EigenPodTable: React.FC<EigenPodTableProps> = ({
                   </TableCell>
                   <TableCell sx={{ fontFamily: 'monospace' }}>
                     <Tooltip title={pod.transactionHash}>
-                      <Typography variant="body2">
-                        {formatAddress(pod.transactionHash)}
-                      </Typography>
+                      <Link
+                        href={getEtherscanUrl(pod.transactionHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ 
+                          textDecoration: 'none',
+                          color: 'primary.main',
+                          '&:hover': {
+                            textDecoration: 'underline'
+                          }
+                        }}
+                      >
+                        <Typography variant="body2">
+                          {formatAddress(pod.transactionHash)}
+                        </Typography>
+                      </Link>
                     </Tooltip>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {pod.logIndex}
-                    </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">

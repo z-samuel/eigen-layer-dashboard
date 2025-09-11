@@ -19,6 +19,7 @@ import { GraphQLClient } from './utils/graphql';
 import { HealthStatus } from '@eigen-layer-dashboard/lib';
 import StakedEthDashboard from './components/StakedEthDashboard';
 import EigenPodDashboard from './components/EigenPodDashboard';
+import StrategyDashboard from './components/StrategyDashboard';
 
 // Create a custom theme
 const theme = createTheme({
@@ -36,7 +37,7 @@ function App() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'eigenpods'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'eigenpods' | 'strategies'>('overview');
 
   useEffect(() => {
     const fetchHealthStatus = async () => {
@@ -91,6 +92,13 @@ function App() {
                 >
                   EigenPod Dashboard
                 </Button>
+                <Button
+                  variant={activeTab === 'strategies' ? 'contained' : 'outlined'}
+                  color={activeTab === 'strategies' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('strategies')}
+                >
+                  Strategy Dashboard
+                </Button>
               </Stack>
             </Stack>
           </Container>
@@ -137,6 +145,10 @@ function App() {
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Chip label="✅" color="success" size="small" />
+                        <Typography>Strategy Analytics Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
                         <Typography>Real-time Staking Data</Typography>
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
@@ -156,6 +168,7 @@ function App() {
           
           {activeTab === 'analytics' && <StakedEthDashboard />}
           {activeTab === 'eigenpods' && <EigenPodDashboard />}
+          {activeTab === 'strategies' && <StrategyDashboard />}
         </Container>
       </Box>
     </ThemeProvider>

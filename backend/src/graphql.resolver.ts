@@ -197,4 +197,5 @@ export class GraphQLResolver {
       return [];
     }
   }
+
 }
