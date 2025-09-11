@@ -44,7 +44,8 @@ export class StakedEthIndexer {
   private async getContractDeploymentBlock(): Promise<number> {
     const config: ContractDeploymentConfig = {
       knownDeploymentBlock: 11052984, // Ethereum 2.0 Deposit Contract deployment block
-      contractName: 'Ethereum 2.0 Deposit Contract'
+      contractName: 'Ethereum 2.0 Deposit Contract',
+      fallbackBlockOffset: 1000000 // Use 1M blocks back as fallback if known block fails
     };
     
     return getContractDeploymentBlock(

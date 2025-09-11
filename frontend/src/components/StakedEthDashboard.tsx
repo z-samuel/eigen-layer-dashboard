@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Collapse,
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  Stack,
+  Grid,
+  Paper,
+  FormControl,
+  FormLabel,
+  FormControlLabel,
+  RadioGroup,
+  Radio,
+  TextField
+} from '@mui/material';
+import { Refresh } from '@mui/icons-material';
 import { GraphQLClient } from '../utils/graphql';
 import { StakedEthAnalytics, StakedEthAnalyticsInput, StakedEthStats } from '@eigen-layer-dashboard/lib';
 import AnalyticsTable from './AnalyticsTable';
-import './StakedEthDashboard.css';
 
 const StakedEthDashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<StakedEthAnalytics[]>([]);
@@ -10,6 +28,10 @@ const StakedEthDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  
+  const toggleHeaderVisibility = () => {
+    setIsHeaderVisible(!isHeaderVisible);
+  };
   
   // Filter states
   const [queryType, setQueryType] = useState<'single' | 'range'>('single');
@@ -73,109 +95,164 @@ const StakedEthDashboard: React.FC = () => {
     setEndBlock(currentBlock);
   };
 
-  const toggleHeaderVisibility = () => {
-    setIsHeaderVisible(!isHeaderVisible);
-  };
 
   return (
-    <div className="staked-eth-dashboard">
-      {isHeaderVisible && (
-        <div className="dashboard-header">
-          <div className="header-content">
-            <h2>Staked ETH Analytics Dashboard</h2>
-            <p>Monitor Ethereum 2.0 staking deposits and analyze staking patterns</p>
-            <div className="data-context-note">
-              <p><strong>📊 Data Context:</strong> This dashboard shows staking data from the indexed database. Time ranges are relative to the most recent indexed data, not the current time.</p>
-            </div>
-          </div>
-        </div>
-      )}
+    <Stack spacing={4}>
+      {/* Header Section */}
+      <Collapse in={isHeaderVisible} timeout="auto" unmountOnExit>
+        <Paper elevation={1} sx={{ p: 3 }}>
+          <Stack spacing={3}>
+            <Box>
+              <Typography variant="h4" component="h2" gutterBottom>
+                Staked ETH Analytics Dashboard
+              </Typography>
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Monitor Ethereum 2.0 staking deposits and analyze staking patterns
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
+                <Typography variant="body2" color="info.dark">
+                  <strong>📊 Data Context:</strong> This dashboard shows staking data from the indexed database. Time ranges are relative to the most recent indexed data, not the current time.
+                </Typography>
+              </Box>
+            </Box>
 
-      {isHeaderVisible && (
-        <>
-          {stats && (
-            <div className="stats-overview">
-              <div className="stat-card">
-                <h4>Total Events</h4>
-                <p className="stat-value">{stats.totalEvents.toLocaleString()}</p>
-              </div>
-              <div className="stat-card">
-                <h4>Total Staked</h4>
-                <p className="stat-value">{(parseFloat(stats.totalAmount) / 1e18).toFixed(2)} ETH</p>
-              </div>
-              <div className="stat-card">
-                <h4>Last Block</h4>
-                <p className="stat-value">{stats.lastBlock.toLocaleString()}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="dashboard-controls">
-            <form onSubmit={handleSubmit} className="query-form">
-              <div className="form-group">
-                <label>Query Type:</label>
-                <select 
-                  value={queryType} 
-                  onChange={(e) => setQueryType(e.target.value as 'single' | 'range')}
-                >
-                  <option value="single">Single Block</option>
-                  <option value="range">Block Range</option>
-                </select>
-              </div>
-
-              {queryType === 'single' && (
-                <div className="form-group">
-                  <label>Block Number:</label>
-                  <input
-                    type="number"
-                    value={blockNumber}
-                    onChange={(e) => setBlockNumber(parseInt(e.target.value) || 0)}
-                    placeholder="Enter block number"
-                  />
-                </div>
-              )}
-
-              {queryType === 'range' && (
-                <>
-                  <div className="form-group">
-                    <label>Start Block:</label>
-                    <input
-                      type="number"
-                      value={startBlock}
-                      onChange={(e) => setStartBlock(parseInt(e.target.value) || 0)}
-                      placeholder="Start block"
+            {/* Main Content Row */}
+            <Grid container spacing={4}>
+              {/* Stats Cards */}
+              <Grid item xs={12} md={3}>
+                {stats && (
+                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <CardHeader 
+                      title="Statistics" 
+                      sx={{ pb: 1 }}
                     />
-                  </div>
-                  <div className="form-group">
-                    <label>End Block:</label>
-                    <input
-                      type="number"
-                      value={endBlock}
-                      onChange={(e) => setEndBlock(parseInt(e.target.value) || 0)}
-                      placeholder="End block"
-                    />
-                  </div>
-                </>
-              )}
+                    <CardContent sx={{ pt: 1, pb: 2, flexGrow: 1 }}>
+                      <Stack spacing={1.5}>
+                        <Box>
+                          <Typography color="text.secondary" gutterBottom sx={{ mb: 0.5 }}>
+                            Total Events
+                          </Typography>
+                          <Typography variant="h5" component="div" color="primary">
+                            {stats.totalEvents.toLocaleString()}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography color="text.secondary" gutterBottom sx={{ mb: 0.5 }}>
+                            Total Staked
+                          </Typography>
+                          <Typography variant="h5" component="div" color="success.main">
+                            {(parseFloat(stats.totalAmount) / 1e18).toFixed(2)} ETH
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography color="text.secondary" gutterBottom sx={{ mb: 0.5 }}>
+                            Last Block
+                          </Typography>
+                          <Typography variant="h5" component="div" color="warning.main">
+                            {stats.lastBlock.toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                )}
+              </Grid>
 
-              <button type="submit" className="query-button" disabled={loading}>
-                {loading ? 'Loading...' : 'Query Analytics'}
-              </button>
-            </form>
+              {/* Query Configuration */}
+              <Grid item xs={12} md={6}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardHeader title="Query Configuration" />
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Box component="form" onSubmit={handleSubmit} noValidate>
+                      <Stack spacing={3}>
+                        <FormControl>
+                          <FormLabel>Query Type</FormLabel>
+                          <RadioGroup
+                            value={queryType}
+                            onChange={(e) => setQueryType(e.target.value as 'single' | 'range')}
+                            row
+                          >
+                            <FormControlLabel value="single" control={<Radio />} label="Single Block" />
+                            <FormControlLabel value="range" control={<Radio />} label="Block Range" />
+                          </RadioGroup>
+                        </FormControl>
 
-            <div className="quick-actions">
-              <h4>Quick Ranges:</h4>
-              <div className="quick-buttons">
-                <button onClick={() => handleQuickRange(1)}>Last Hour</button>
-                <button onClick={() => handleQuickRange(6)}>Last 6 Hours</button>
-                <button onClick={() => handleQuickRange(24)}>Last 24 Hours</button>
-                <button onClick={() => handleQuickRange(168)}>Last Week</button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+                        {queryType === 'single' && (
+                          <TextField
+                            fullWidth
+                            label="Block Number"
+                            type="number"
+                            value={blockNumber}
+                            onChange={(e) => setBlockNumber(parseInt(e.target.value) || 0)}
+                            placeholder="Enter block number"
+                          />
+                        )}
 
+                        {queryType === 'range' && (
+                          <Stack direction="row" spacing={2}>
+                            <TextField
+                              fullWidth
+                              label="Start Block"
+                              type="number"
+                              value={startBlock}
+                              onChange={(e) => setStartBlock(parseInt(e.target.value) || 0)}
+                              placeholder="Start block"
+                            />
+                            <TextField
+                              fullWidth
+                              label="End Block"
+                              type="number"
+                              value={endBlock}
+                              onChange={(e) => setEndBlock(parseInt(e.target.value) || 0)}
+                              placeholder="End block"
+                            />
+                          </Stack>
+                        )}
+
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          size="large"
+                          disabled={loading}
+                          startIcon={loading ? <Refresh className="rotating" /> : undefined}
+                          sx={{ alignSelf: 'flex-start' }}
+                        >
+                          {loading ? 'Loading...' : 'Query Analytics'}
+                        </Button>
+                      </Stack>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Quick Ranges */}
+              <Grid item xs={12} md={3}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardHeader title="Quick Ranges" />
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Stack spacing={2}>
+                      <Button variant="outlined" onClick={() => handleQuickRange(1)}>
+                        Last Hour
+                      </Button>
+                      <Button variant="outlined" onClick={() => handleQuickRange(6)}>
+                        Last 6 Hours
+                      </Button>
+                      <Button variant="outlined" onClick={() => handleQuickRange(24)}>
+                        Last 24 Hours
+                      </Button>
+                      <Button variant="outlined" onClick={() => handleQuickRange(168)}>
+                        Last Week
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Stack>
+        </Paper>
+      </Collapse>
+
+      {/* Analytics Table */}
       <AnalyticsTable 
         data={analytics} 
         loading={loading} 
@@ -184,7 +261,7 @@ const StakedEthDashboard: React.FC = () => {
         isHeaderVisible={isHeaderVisible}
         onToggleHeader={toggleHeaderVisibility}
       />
-    </div>
+    </Stack>
   );
 };
 

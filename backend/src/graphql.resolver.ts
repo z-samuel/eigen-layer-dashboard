@@ -1,6 +1,7 @@
 import { Resolver, Query, Args, Int } from '@nestjs/graphql';
 import { EigenPodService } from './eigenpod.service';
 import { StakedEthService } from './staked-eth.service';
+import { MaterializedViewService } from './materialized-view.service';
 import {
   HealthStatus,
   EigenPodResponse,
@@ -20,6 +21,7 @@ export class GraphQLResolver {
   constructor(
     private readonly eigenPodService: EigenPodService,
     private readonly stakedEthService: StakedEthService,
+    private readonly materializedViewService: MaterializedViewService,
   ) {}
 
   // Health check
@@ -150,32 +152,49 @@ export class GraphQLResolver {
     return await this.stakedEthService.getStakedEthStats();
   }
 
-  // Staking analytics
+  // Staking analytics - now using materialized view for better performance
   @Query(() => [StakedEthByBlock])
   async stakedEthAnalytics(
     @Args('input', { type: () => StakedEthAnalyticsInput }) input: StakedEthAnalyticsInput,
   ): Promise<StakedEthByBlock[]> {
-    // Single block analytics
-    if (input.blockNumber) {
-      const result = await this.stakedEthService.getStakedEthByBlock(input.blockNumber);
-      return result ? [result] : [];
-    }
-    
-    // Block range analytics
-    if (input.startBlock && input.endBlock) {
-      if (input.summary) {
-        // Summary analytics (cumulative totals)
-        return await this.stakedEthService.getStakedEthSummaryByBlockRange(input.startBlock, input.endBlock);
-      } else {
-        // Detailed analytics
-        return await this.stakedEthService.getStakedEthByBlockRange(
+    try {
+      // Single block analytics - use materialized view
+      if (input.blockNumber) {
+        const result = await this.materializedViewService.getStakedEthAnalyticsByBlock(input.blockNumber);
+        return result ? [result] : [];
+      }
+      
+      // Block range analytics - use materialized view
+      if (input.startBlock && input.endBlock) {
+        const results = await this.materializedViewService.getStakedEthAnalyticsByBlockRange(
           input.startBlock, 
           input.endBlock
         );
+        return results;
       }
+      
+      // Default: return empty array if no valid input
+      return [];
+    } catch (error) {
+      console.error('Error in stakedEthAnalytics:', error);
+      // Fallback to original service if materialized view fails
+      if (input.blockNumber) {
+        const result = await this.stakedEthService.getStakedEthByBlock(input.blockNumber);
+        return result ? [result] : [];
+      }
+      
+      if (input.startBlock && input.endBlock) {
+        if (input.summary) {
+          return await this.stakedEthService.getStakedEthSummaryByBlockRange(input.startBlock, input.endBlock);
+        } else {
+          return await this.stakedEthService.getStakedEthByBlockRange(
+            input.startBlock, 
+            input.endBlock
+          );
+        }
+      }
+      
+      return [];
     }
-    
-    // Default: return empty array if no valid input
-    return [];
   }
 }

@@ -1,14 +1,42 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  ThemeProvider, 
+  createTheme, 
+  CssBaseline, 
+  Container, 
+  Box, 
+  Typography, 
+  Button, 
+  Card, 
+  CardContent, 
+  Chip,
+  Paper,
+  Stack,
+  CircularProgress,
+  Alert
+} from '@mui/material';
 import { GraphQLClient } from './utils/graphql';
 import { HealthStatus } from '@eigen-layer-dashboard/lib';
 import StakedEthDashboard from './components/StakedEthDashboard';
-import './App.css';
+import EigenPodDashboard from './components/EigenPodDashboard';
+
+// Create a custom theme
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
 
 function App() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'eigenpods'>('overview');
 
   useEffect(() => {
     const fetchHealthStatus = async () => {
@@ -28,68 +56,109 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>EigenLayer Dashboard</h1>
-        <p>Monitor and manage your EigenLayer operations</p>
-        
-        <nav className="tab-navigation">
-          <button 
-            className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            Overview
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
-          >
-            Staked ETH Analytics
-          </button>
-        </nav>
-      </header>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box minHeight="100vh" bgcolor="grey.50">
+        <Paper elevation={1} sx={{ borderBottom: 1, borderColor: 'grey.200' }}>
+          <Container maxWidth="xl" sx={{ py: 4 }}>
+            <Stack spacing={4} alignItems="center">
+              <Typography variant="h3" component="h1" color="text.primary" fontWeight="bold">
+                EigenLayer Dashboard
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Monitor and manage your EigenLayer operations
+              </Typography>
+              
+              <Stack direction="row" spacing={2} flexWrap="wrap" justifyContent="center">
+                <Button
+                  variant={activeTab === 'overview' ? 'contained' : 'outlined'}
+                  color={activeTab === 'overview' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('overview')}
+                >
+                  Overview
+                </Button>
+                <Button
+                  variant={activeTab === 'analytics' ? 'contained' : 'outlined'}
+                  color={activeTab === 'analytics' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('analytics')}
+                >
+                  Staked ETH Analytics
+                </Button>
+                <Button
+                  variant={activeTab === 'eigenpods' ? 'contained' : 'outlined'}
+                  color={activeTab === 'eigenpods' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('eigenpods')}
+                >
+                  EigenPod Dashboard
+                </Button>
+              </Stack>
+            </Stack>
+          </Container>
+        </Paper>
 
-      <main className="App-main">
-        {loading && <div className="loading">Loading...</div>}
-        
-        {error && (
-          <div className="error">
-            <h3>⚠️ Connection Error</h3>
-            <p>{error}</p>
-            <p>Make sure the backend server is running on port 3001</p>
-          </div>
-        )}
-        
-        {activeTab === 'overview' && healthStatus && (
-          <div className="overview-content">
-            <div className="health-status">
-              <h3>✅ Backend Status</h3>
-              <div className="status-card">
-                <p><strong>Status:</strong> {healthStatus.status}</p>
-                <p><strong>Service:</strong> {healthStatus.service}</p>
-                <p><strong>Last Updated:</strong> {new Date(healthStatus.timestamp).toLocaleString()}</p>
-              </div>
-            </div>
-            
-            <div className="features">
-              <h3>Available Features</h3>
-              <ul>
-                <li>✅ Staked ETH Analytics Dashboard</li>
-                <li>✅ Real-time Staking Data</li>
-                <li>✅ Block-level Analysis</li>
-                <li>✅ Historical Data Queries</li>
-                <li>🔄 EigenPod Monitoring (Coming Soon)</li>
-                <li>🔄 Performance Metrics (Coming Soon)</li>
-              </ul>
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'analytics' && (
-          <StakedEthDashboard />
-        )}
-      </main>
-    </div>
+        <Container maxWidth="xl" sx={{ py: 8 }}>
+          {loading && (
+            <Stack spacing={4} alignItems="center">
+              <CircularProgress size={60} />
+              <Typography>Loading...</Typography>
+            </Stack>
+          )}
+          
+          {error && (
+            <Alert severity="error" sx={{ mb: 4 }}>
+              <Typography variant="h6" component="div" gutterBottom>
+                Connection Error
+              </Typography>
+              <Typography>{error}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Make sure the backend server is running on port 3001
+              </Typography>
+            </Alert>
+          )}
+          
+          {activeTab === 'overview' && healthStatus && (
+            <Stack spacing={4}>
+              <Chip label="✅ Backend Status" color="success" size="small" />
+              
+              <Card>
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Typography variant="h5" fontWeight="bold">
+                      Available Features
+                    </Typography>
+                    <Stack spacing={2}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>Staked ETH Analytics Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>EigenPod Monitoring Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>Real-time Staking Data</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>Block-level Analysis</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>Historical Data Queries</Typography>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Stack>
+          )}
+          
+          {activeTab === 'analytics' && <StakedEthDashboard />}
+          {activeTab === 'eigenpods' && <EigenPodDashboard />}
+        </Container>
+      </Box>
+    </ThemeProvider>
   );
 }
 

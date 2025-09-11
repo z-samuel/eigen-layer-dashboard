@@ -1,7 +1,25 @@
 import React, { useState } from 'react';
+import {
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+  Pagination,
+  Stack,
+  CircularProgress,
+  Alert,
+  Chip,
+  IconButton,
+  Tooltip
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { StakedEthAnalytics } from '@eigen-layer-dashboard/lib';
 import { formatTimestamp, formatBlockNumber, formatEventCount, formatEthAmount } from '../utils/formatters';
-import './AnalyticsTable.css';
 
 interface AnalyticsTableProps {
   data: StakedEthAnalytics[];
@@ -39,163 +57,133 @@ const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
     setCurrentPage(page);
   };
   
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-  
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
   if (loading) {
     return (
-      <div className="analytics-table-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading analytics data...</p>
-        </div>
-      </div>
+      <Box display="flex" flexDirection="column" alignItems="center" p={4}>
+        <CircularProgress size={40} />
+        <Typography variant="body1" sx={{ mt: 2 }}>
+          Loading analytics data...
+        </Typography>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="analytics-table-container">
-        <div className="error-message">
-          <h3>⚠️ Error Loading Data</h3>
-          <p>{error}</p>
-        </div>
-      </div>
+      <Alert severity="error" sx={{ m: 2 }}>
+        <Typography variant="h6" component="div" gutterBottom>
+          ⚠️ Error Loading Data
+        </Typography>
+        <Typography>{error}</Typography>
+      </Alert>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="analytics-table-container">
-        <div className="no-data">
-          <p>No analytics data available for the selected range.</p>
-        </div>
-      </div>
+      <Box p={4} textAlign="center">
+        <Typography variant="body1" color="text.secondary">
+          No analytics data available for the selected range.
+        </Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="analytics-table-container">
-      <div className="table-header">
-        <div className="table-header-content">
-          <div className="table-title-section">
-            <h3>Staked ETH Analytics</h3>
-            <p>
+    <Paper elevation={1} sx={{ overflow: 'hidden' }}>
+      {/* Table Header */}
+      <Box sx={{ p: 3, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'grey.200' }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+          <Box>
+            <Typography variant="h6" component="h3" gutterBottom>
+              Staked ETH Analytics
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
               Showing {startIndex + 1}-{Math.min(endIndex, data.length)} of {data.length} block{data.length !== 1 ? 's' : ''}
               {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
-            </p>
-          </div>
+            </Typography>
+          </Box>
           {showToggleButton && onToggleHeader && (
-            <button 
-              className="toggle-header-btn"
-              onClick={onToggleHeader}
-              title={isHeaderVisible ? 'Hide header and configuration' : 'Show header and configuration'}
-            >
-              {isHeaderVisible ? '▲ Hide Header' : '▶ Show Header'}
-            </button>
+            <Tooltip title={isHeaderVisible ? 'Hide header and configuration' : 'Show header and configuration'}>
+              <IconButton onClick={onToggleHeader} color="primary">
+                {isHeaderVisible ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </Tooltip>
           )}
-        </div>
-      </div>
-      
-      <div className="table-wrapper">
-        <table className="analytics-table">
-          <thead>
-            <tr>
-              <th>Block Number</th>
-              <th>Timestamp</th>
-              <th>Total Deposited</th>
-              <th>Event Count</th>
-            </tr>
-          </thead>
-          <tbody>
+        </Stack>
+      </Box>
+
+      {/* Table */}
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>Block Number</strong></TableCell>
+              <TableCell><strong>Timestamp</strong></TableCell>
+              <TableCell><strong>Total Deposited</strong></TableCell>
+              <TableCell><strong>Event Count</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {paginatedData.map((item, index) => (
-              <tr key={`${item.blockNumber}-${startIndex + index}`} className={item.eventCount === 0 ? 'no-events' : ''}>
-                <td className="block-number">
+              <TableRow 
+                key={`${item.blockNumber}-${startIndex + index}`}
+                sx={{ 
+                  '&:hover': { bgcolor: 'grey.50' },
+                  ...(item.eventCount === 0 && { opacity: 0.6 })
+                }}
+              >
+                <TableCell sx={{ fontFamily: 'monospace' }}>
                   {formatBlockNumber(item.blockNumber)}
-                </td>
-                <td className="timestamp">
+                </TableCell>
+                <TableCell>
                   {formatTimestamp(item.blockTimestamp)}
-                </td>
-                <td className="amount">
-                  {item.eventCount === 0 ? 'No deposits' : formatEthAmount(item.totalDeposited)}
-                </td>
-                <td className="event-count">
-                  {formatEventCount(item.eventCount)}
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell>
+                  {item.eventCount === 0 ? (
+                    <Typography color="text.secondary" fontStyle="italic">
+                      No deposits
+                    </Typography>
+                  ) : (
+                    formatEthAmount(item.totalDeposited)
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={formatEventCount(item.eventCount)} 
+                    size="small"
+                    color={item.eventCount === 0 ? 'default' : 'primary'}
+                    variant={item.eventCount === 0 ? 'outlined' : 'filled'}
+                  />
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
       
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="pagination">
-          <div className="pagination-info">
-            <span>Page {currentPage} of {totalPages}</span>
-          </div>
-          
-          <div className="pagination-controls">
-            <button
-              className="pagination-btn"
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-              title="Previous page"
-            >
-              ← Previous
-            </button>
-            
-            <div className="pagination-numbers">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                // Show first page, last page, current page, and pages around current page
-                const shouldShow = 
-                  page === 1 || 
-                  page === totalPages || 
-                  (page >= currentPage - 1 && page <= currentPage + 1);
-                
-                if (!shouldShow) {
-                  // Show ellipsis for gaps
-                  if (page === 2 && currentPage > 4) {
-                    return <span key={`ellipsis-${page}`} className="pagination-ellipsis">...</span>;
-                  }
-                  if (page === totalPages - 1 && currentPage < totalPages - 3) {
-                    return <span key={`ellipsis-${page}`} className="pagination-ellipsis">...</span>;
-                  }
-                  return null;
-                }
-                
-                return (
-                  <button
-                    key={page}
-                    className={`pagination-number ${currentPage === page ? 'active' : ''}`}
-                    onClick={() => handlePageChange(page)}
-                    title={`Go to page ${page}`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-            </div>
-            
-            <button
-              className="pagination-btn"
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              title="Next page"
-            >
-              Next →
-            </button>
-          </div>
-        </div>
+        <Box sx={{ p: 2, bgcolor: 'grey.50', borderTop: 1, borderColor: 'grey.200' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              Page {currentPage} of {totalPages}
+            </Typography>
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={(_, page) => handlePageChange(page)}
+              color="primary"
+              size="small"
+              showFirstButton
+              showLastButton
+              siblingCount={1}
+              boundaryCount={1}
+            />
+          </Stack>
+        </Box>
       )}
-    </div>
+    </Paper>
   );
 };
 

@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 import { EigenPodService } from './eigenpod.service';
 import { StakedEthService } from './staked-eth.service';
+import { MaterializedViewService } from './materialized-view.service';
 import { GraphQLResolver } from './graphql.resolver';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
@@ -182,6 +185,6 @@ import { GraphQLResolver } from './graphql.resolver';
     }),
   ],
   controllers: [],
-  providers: [EigenPodService, StakedEthService, GraphQLResolver],
+  providers: [EigenPodService, StakedEthService, MaterializedViewService, GraphQLResolver],
 })
 export class AppModule {}

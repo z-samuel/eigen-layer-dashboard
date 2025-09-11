@@ -31,6 +31,8 @@ export async function getContractDeploymentBlock(
       }
     } catch (error) {
       console.warn(`Could not verify known deployment block for ${config.contractName}:`, error);
+      // Skip verification and use fallback approach
+      console.log(`Skipping known deployment block verification for ${config.contractName}`);
     }
   }
 

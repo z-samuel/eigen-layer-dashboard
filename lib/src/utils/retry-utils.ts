@@ -46,6 +46,25 @@ export function isRateLimitError(error: any): boolean {
 }
 
 /**
+ * Checks if an error is a "Block Not Found" error that should not be retried
+ */
+export function isBlockNotFoundError(error: any): boolean {
+  // Check for "Block Not Found" error
+  if (error.error?.code === -32000 && error.error?.message === 'Block Not Found') {
+    return true;
+  }
+  
+  // Check for generic block not found messages
+  if (error.message?.includes('Block Not Found') || 
+      error.message?.includes('block not found') ||
+      error.message?.includes('block does not exist')) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * Calculates delay for retry with exponential backoff
  */
 export function calculateRetryDelay(attempt: number, config: RetryConfig, isRateLimit: boolean = false): number {
@@ -73,6 +92,13 @@ export async function withRetry<T>(
       return await fn();
     } catch (error: any) {
       const isRateLimit = isRateLimitError(error);
+      const isBlockNotFound = isBlockNotFoundError(error);
+      
+      // Don't retry "Block Not Found" errors as they won't succeed
+      if (isBlockNotFound) {
+        console.warn(`${context} failed with "Block Not Found" error, not retrying: ${error.message || error}`);
+        throw error;
+      }
       
       if (attempt === maxRetries) {
         console.error(`${context} failed after ${maxRetries} attempts: ${error.message || error}`);
