@@ -189,7 +189,7 @@ The GraphQL subgraph provides a unified interface for all data queries with flex
 - **Staked ETH by Validator** - Query by validator public key
 - **Staked ETH by Block Range** - Query by block range
 - **Analytics - Single Block** - Single block analytics
-- **Analytics - Block Range** - Block range analytics with step
+- **Analytics - Block Range** - Block range analytics
 - **Analytics - Summary** - Summary analytics for block ranges
 - **Staked ETH Statistics** - Overall staking statistics
 
@@ -197,12 +197,15 @@ The GraphQL subgraph provides a unified interface for all data queries with flex
 - `health` - Service health check with timestamp
 
 #### **EigenPod Queries**
-- `eigenPods(skip, limit)` - Paginated list of all EigenPod events
-- `eigenPodByOwner(ownerAddress)` - Get EigenPods by owner address
-- `eigenPodByAddress(eigenPodAddress)` - Get EigenPod by address
-- `eigenPodByValidator(publicKey)` - Get EigenPod by validator public key
-- `eigenPodsByBlockRange(startBlock, endBlock)` - Get EigenPods by block range
+- `eigenPods(skip, limit, where)` - Paginated list of EigenPod events with filtering
 - `eigenPodStatus` - Database status and statistics
+
+**EigenPod Filtering Options (`where` parameter):**
+- `ownerAddress` - Filter by pod owner address
+- `eigenPodAddress` - Filter by EigenPod address
+- `validatorPublicKey` - Filter by validator public key
+- `startBlock` - Filter by minimum block number
+- `endBlock` - Filter by maximum block number
 
 #### **Staked ETH Queries**
 - `stakedEth(skip, limit, where)` - Unified staking events query with filtering
@@ -211,7 +214,7 @@ The GraphQL subgraph provides a unified interface for all data queries with flex
 #### **Staking Analytics Queries**
 - `stakedEthAnalytics(input)` - Unified analytics query supporting:
   - Single block analysis (`blockNumber`)
-  - Block range analysis (`startBlock`, `endBlock`, `step`)
+  - Block range analysis (`startBlock`, `endBlock`)
   - Summary analysis (`startBlock`, `endBlock`, `summary: true`)
 
 #### **Example GraphQL Queries**
@@ -221,7 +224,19 @@ The GraphQL subgraph provides a unified interface for all data queries with flex
 
 # Get EigenPods with pagination
 { eigenPods(skip: 0, limit: 5) { 
-  events { id eigenPod podOwner blockNumber } 
+  pods { id eigenPod podOwner blockNumber } 
+  total 
+} }
+
+# Get EigenPods by owner address
+{ eigenPods(where: { ownerAddress: "0x..." }) { 
+  pods { id eigenPod podOwner blockNumber } 
+  total 
+} }
+
+# Get EigenPods by block range
+{ eigenPods(where: { startBlock: 18000000, endBlock: 18001000 }) { 
+  pods { id eigenPod podOwner blockNumber } 
   total 
 } }
 
@@ -251,11 +266,10 @@ The GraphQL subgraph provides a unified interface for all data queries with flex
   blockNumber blockTimestamp totalDeposited eventCount 
 } }
 
-# Get analytics for a block range with step
+# Get analytics for a block range
 { stakedEthAnalytics(input: { 
   startBlock: 18001980, 
-  endBlock: 18001990, 
-  step: 2 
+  endBlock: 18001990
 }) { 
   blockNumber blockTimestamp totalDeposited eventCount 
 } }

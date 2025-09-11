@@ -1,5 +1,12 @@
 import { ethers } from 'ethers';
 import { DatabaseService } from './database';
+import { 
+  getContractDeploymentBlock, 
+  ContractDeploymentConfig,
+  getCodeWithRetry,
+  getBlockNumberWithRetry,
+  queryEventsWithRetry
+} from '@eigen-layer-dashboard/lib';
 
 // PodDeployed event ABI
 const POD_DEPLOYED_ABI = [
@@ -27,123 +34,24 @@ export class EventIndexer {
   }
 
   private async getContractDeploymentBlock(): Promise<number> {
-    try {
-      console.log('Detecting contract deployment block...');
-      
-      // Get the contract code to verify it exists
-      const code = await this.getCodeWithRetry(this.contract.target as string);
-      if (code === '0x') {
-        throw new Error('Contract not found at the specified address');
-      }
-
-      // Binary search to find the deployment block
-      const currentBlock = await this.getBlockNumberWithRetry();
-      let low = 0;
-      let high = currentBlock;
-      let deploymentBlock = currentBlock;
-
-      while (low <= high) {
-        const mid = Math.floor((low + high) / 2);
-        
-        try {
-          const blockCode = await this.getCodeWithRetry(this.contract.target as string, mid);
-          if (blockCode !== '0x') {
-            // Contract exists at this block, search earlier
-            deploymentBlock = mid;
-            high = mid - 1;
-          } else {
-            // Contract doesn't exist at this block, search later
-            low = mid + 1;
-          }
-        } catch (error) {
-          // If we can't get the code at this block, search later
-          low = mid + 1;
-        }
-      }
-
-      console.log(`Contract deployment block detected: ${deploymentBlock}`);
-      return deploymentBlock;
-    } catch (error) {
-      console.error('Error detecting contract deployment block:', error);
-      // Fallback to a reasonable starting block (e.g., 6 months ago)
-      try {
-        const currentBlock = await this.getBlockNumberWithRetry();
-        const fallbackBlock = Math.max(0, currentBlock - 2000000); // ~6 months of blocks
-        console.log(`Using fallback deployment block: ${fallbackBlock}`);
-        return fallbackBlock;
-      } catch (fallbackError) {
-        console.error('Error getting fallback block:', fallbackError);
-        return 0; // Ultimate fallback
-      }
-    }
+    const config: ContractDeploymentConfig = {
+      contractName: 'EigenPodManager',
+      fallbackBlockOffset: 2000000 // ~6 months of blocks
+    };
+    
+    return getContractDeploymentBlock(
+      this.provider,
+      this.contract.target as string,
+      config
+    );
   }
 
   private async getCodeWithRetry(address: string, blockTag?: number | string): Promise<string> {
-    let retryCount = 0;
-    
-    while (retryCount < this.maxRetries) {
-      try {
-        const code = await this.provider.getCode(address, blockTag);
-        return code;
-      } catch (error: any) {
-        retryCount++;
-        
-        const isRateLimitError = error.message?.includes('Too Many Requests') || 
-                                error.code === -32005 || 
-                                error.message?.includes('rate limit') ||
-                                error.message?.includes('429');
-        
-        if (isRateLimitError && retryCount < this.maxRetries) {
-          const sleepTime = this.retryDelayBase * retryCount;
-          console.log(`Rate limit hit during code check. Retrying in ${sleepTime} seconds... (attempt ${retryCount}/${this.maxRetries})`);
-          await this.sleep(sleepTime * 1000);
-          continue;
-        }
-        
-        if (retryCount >= this.maxRetries) {
-          console.error(`Failed to get code after ${this.maxRetries} retries. Last error:`, error.message);
-          throw new Error(`Get code failed after ${this.maxRetries} retries: ${error.message}`);
-        }
-        
-        throw error;
-      }
-    }
-    
-    throw new Error(`Get code failed after ${this.maxRetries} retries`);
+    return getCodeWithRetry(this.provider, address, blockTag);
   }
 
   private async getBlockNumberWithRetry(): Promise<number> {
-    let retryCount = 0;
-    
-    while (retryCount < this.maxRetries) {
-      try {
-        const blockNumber = await this.provider.getBlockNumber();
-        return blockNumber;
-      } catch (error: any) {
-        retryCount++;
-        
-        const isRateLimitError = error.message?.includes('Too Many Requests') || 
-                                error.code === -32005 || 
-                                error.message?.includes('rate limit') ||
-                                error.message?.includes('429');
-        
-        if (isRateLimitError && retryCount < this.maxRetries) {
-          const sleepTime = this.retryDelayBase * retryCount;
-          console.log(`Rate limit hit during block number check. Retrying in ${sleepTime} seconds... (attempt ${retryCount}/${this.maxRetries})`);
-          await this.sleep(sleepTime * 1000);
-          continue;
-        }
-        
-        if (retryCount >= this.maxRetries) {
-          console.error(`Failed to get block number after ${this.maxRetries} retries. Last error:`, error.message);
-          throw new Error(`Get block number failed after ${this.maxRetries} retries: ${error.message}`);
-        }
-        
-        throw error;
-      }
-    }
-    
-    throw new Error(`Get block number failed after ${this.maxRetries} retries`);
+    return getBlockNumberWithRetry(this.provider);
   }
 
   async startIndexing(): Promise<void> {
@@ -260,39 +168,7 @@ export class EventIndexer {
   }
 
   private async queryEventsWithRetry(filter: any, fromBlock: number, toBlock: number): Promise<any[]> {
-    let retryCount = 0;
-    
-    while (retryCount < this.maxRetries) {
-      try {
-        const events = await this.contract.queryFilter(filter, fromBlock, toBlock);
-        return events;
-      } catch (error: any) {
-        retryCount++;
-        
-        // Check if it's a rate limit error
-        const isRateLimitError = error.message?.includes('Too Many Requests') || 
-                                error.code === -32005 || 
-                                error.message?.includes('rate limit') ||
-                                error.message?.includes('429');
-        
-        if (isRateLimitError && retryCount < this.maxRetries) {
-          const sleepTime = this.retryDelayBase * retryCount; // Configurable exponential backoff
-          console.log(`Rate limit hit. Retrying in ${sleepTime} seconds... (attempt ${retryCount}/${this.maxRetries})`);
-          await this.sleep(sleepTime * 1000);
-          continue;
-        }
-        
-        // If it's not a rate limit error or we've exhausted retries, throw the error
-        if (retryCount >= this.maxRetries) {
-          console.error(`Failed after ${this.maxRetries} retries. Last error:`, error.message);
-          throw new Error(`Query failed after ${this.maxRetries} retries: ${error.message}`);
-        }
-        
-        throw error;
-      }
-    }
-    
-    throw new Error(`Query failed after ${this.maxRetries} retries`);
+    return queryEventsWithRetry(this.contract, filter, fromBlock, toBlock);
   }
 
   private sleep(ms: number): Promise<void> {

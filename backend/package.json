@@ -2,6 +2,7 @@
   "name": "@eigen-layer/backend",
   "version": "1.0.0",
   "description": "EigenLayer Dashboard Backend API",
+  "license": "MIT",
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",

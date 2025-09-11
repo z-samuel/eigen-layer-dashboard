@@ -2,6 +2,7 @@
   "name": "@eigen-layer/frontend",
   "version": "1.0.0",
   "description": "EigenLayer Dashboard Frontend",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "@types/node": "^20.10.5",

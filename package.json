@@ -2,6 +2,7 @@
   "name": "eigen-layer-dashboard",
   "version": "1.0.0",
   "description": "EigenLayer Dashboard Monorepo",
+  "license": "MIT",
   "private": true,
   "workspaces": [
     "backend",

@@ -1,6 +1,15 @@
 import { ethers } from 'ethers';
 import { DatabaseService } from './database';
-import { StakedEthEvent } from '@eigen-layer-dashboard/lib';
+import { 
+  StakedEthEvent, 
+  getContractDeploymentBlock, 
+  ContractDeploymentConfig,
+  getCodeWithRetry,
+  getBlockNumberWithRetry,
+  getBlockWithRetry,
+  getTransactionWithRetry,
+  queryEventsWithRetry
+} from '@eigen-layer-dashboard/lib';
 
 const DEPOSIT_EVENT_ABI = [
   "event DepositEvent(bytes pubkey, bytes withdrawal_credentials, bytes amount, bytes signature, bytes index)"
@@ -33,151 +42,32 @@ export class StakedEthIndexer {
   }
 
   private async getContractDeploymentBlock(): Promise<number> {
-    console.log('Finding Ethereum 2.0 Deposit Contract deployment block...');
+    const config: ContractDeploymentConfig = {
+      knownDeploymentBlock: 11052984, // Ethereum 2.0 Deposit Contract deployment block
+      contractName: 'Ethereum 2.0 Deposit Contract'
+    };
     
-    // The Ethereum 2.0 Deposit Contract was deployed at block 11052984
-    // This is a known constant, but we can also detect it dynamically
-    const knownDeploymentBlock = 11052984;
-    
-    try {
-      // Verify the contract exists at the known block
-      const code = await this.getCodeWithRetry(this.contractAddress, knownDeploymentBlock);
-      if (code && code !== '0x') {
-        console.log(`Ethereum 2.0 Deposit Contract found at block ${knownDeploymentBlock}`);
-        return knownDeploymentBlock;
-      }
-    } catch (error) {
-      console.warn('Could not verify known deployment block, using fallback method');
-    }
-
-    // Fallback: binary search to find deployment block
-    const currentBlock = await this.getBlockNumberWithRetry();
-    let low = 0;
-    let high = currentBlock;
-    let deploymentBlock = 0;
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      try {
-        const code = await this.getCodeWithRetry(this.contractAddress, mid);
-        if (code && code !== '0x') {
-          deploymentBlock = mid;
-          high = mid - 1;
-        } else {
-          low = mid + 1;
-        }
-      } catch (error) {
-        console.warn(`Error checking block ${mid}:`, error);
-        low = mid + 1;
-      }
-    }
-
-    if (deploymentBlock === 0) {
-      throw new Error('Could not find Ethereum 2.0 Deposit Contract deployment block');
-    }
-
-    console.log(`Ethereum 2.0 Deposit Contract deployment block: ${deploymentBlock}`);
-    return deploymentBlock;
+    return getContractDeploymentBlock(
+      this.provider,
+      this.contractAddress,
+      config
+    );
   }
 
   private async getCodeWithRetry(address: string, blockTag?: number | string): Promise<string> {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await this.provider.getCode(address, blockTag);
-      } catch (error: any) {
-        const isRateLimit = error.message?.includes('Too Many Requests') || 
-                           error.code === -32005 || 
-                           error.message?.toLowerCase().includes('rate limit') ||
-                           error.message?.includes('429') ||
-                           (error.value && Array.isArray(error.value) && 
-                            error.value.some((err: any) => err.code === -32005 || err.message?.includes('Too Many Requests')));
-        
-        if (isRateLimit && attempt < this.maxRetries) {
-          const delay = this.retryDelayBase * Math.pow(2, attempt - 1);
-          console.log(`Rate limited, retrying in ${delay}s (attempt ${attempt}/${this.maxRetries})`);
-          await this.sleep(delay * 1000);
-          continue;
-        }
-        
-        throw error;
-      }
-    }
-    throw new Error('Exceeded maximum retry limit');
+    return getCodeWithRetry(this.provider, address, blockTag);
   }
 
   private async getBlockNumberWithRetry(): Promise<number> {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await this.provider.getBlockNumber();
-      } catch (error: any) {
-        const isRateLimit = error.message?.includes('Too Many Requests') || 
-                           error.code === -32005 || 
-                           error.message?.toLowerCase().includes('rate limit') ||
-                           error.message?.includes('429') ||
-                           (error.value && Array.isArray(error.value) && 
-                            error.value.some((err: any) => err.code === -32005 || err.message?.includes('Too Many Requests')));
-        
-        if (isRateLimit && attempt < this.maxRetries) {
-          const delay = this.retryDelayBase * Math.pow(2, attempt - 1);
-          console.log(`Rate limited, retrying in ${delay}s (attempt ${attempt}/${this.maxRetries})`);
-          await this.sleep(delay * 1000);
-          continue;
-        }
-        
-        throw error;
-      }
-    }
-    throw new Error('Exceeded maximum retry limit');
+    return getBlockNumberWithRetry(this.provider);
   }
 
   private async getBlockWithRetry(blockNumber: number): Promise<any> {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await this.provider.getBlock(blockNumber);
-      } catch (error: any) {
-        const isRateLimit = error.message?.includes('Too Many Requests') || 
-                           error.code === -32005 || 
-                           error.message?.toLowerCase().includes('rate limit') ||
-                           error.message?.includes('429') ||
-                           (error.value && Array.isArray(error.value) && 
-                            error.value.some((err: any) => err.code === -32005 || err.message?.includes('Too Many Requests')));
-        
-        if (isRateLimit && attempt < this.maxRetries) {
-          const delay = this.retryDelayBase * Math.pow(2, attempt - 1);
-          console.log(`Rate limited, retrying in ${delay}s (attempt ${attempt}/${this.maxRetries})`);
-          await this.sleep(delay * 1000);
-          continue;
-        }
-        
-        throw error;
-      }
-    }
-    throw new Error('Exceeded maximum retry limit');
+    return getBlockWithRetry(this.provider, blockNumber);
   }
 
   private async getTransactionWithRetry(transactionHash: string): Promise<any> {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await this.provider.getTransaction(transactionHash);
-      } catch (error: any) {
-        const isRateLimit = error.message?.includes('Too Many Requests') || 
-                           error.code === -32005 || 
-                           error.message?.toLowerCase().includes('rate limit') ||
-                           error.message?.includes('429') ||
-                           (error.value && Array.isArray(error.value) && 
-                            error.value.some((err: any) => err.code === -32005 || err.message?.includes('Too Many Requests')));
-        
-        if (isRateLimit && attempt < this.maxRetries) {
-          const delay = this.retryDelayBase * Math.pow(2, attempt - 1);
-          console.log(`Rate limited, retrying in ${delay}s (attempt ${attempt}/${this.maxRetries})`);
-          await this.sleep(delay * 1000);
-          continue;
-        }
-        
-        throw error;
-      }
-    }
-    throw new Error('Exceeded maximum retry limit');
+    return getTransactionWithRetry(this.provider, transactionHash);
   }
 
   async startIndexing(): Promise<void> {
@@ -281,28 +171,7 @@ export class StakedEthIndexer {
   }
 
   private async queryEventsWithRetry(filter: any, fromBlock: number, toBlock: number): Promise<any[]> {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await this.contract.queryFilter(filter, fromBlock, toBlock);
-      } catch (error: any) {
-        const isRateLimit = error.message?.includes('Too Many Requests') || 
-                           error.code === -32005 || 
-                           error.message?.toLowerCase().includes('rate limit') ||
-                           error.message?.includes('429') ||
-                           (error.value && Array.isArray(error.value) && 
-                            error.value.some((err: any) => err.code === -32005 || err.message?.includes('Too Many Requests')));
-        
-        if (isRateLimit && attempt < this.maxRetries) {
-          const delay = this.retryDelayBase * Math.pow(2, attempt - 1);
-          console.log(`Rate limited, retrying in ${delay}s (attempt ${attempt}/${this.maxRetries})`);
-          await this.sleep(delay * 1000);
-          continue;
-        }
-        
-        throw error;
-      }
-    }
-    throw new Error('Exceeded maximum retry limit');
+    return queryEventsWithRetry(this.contract, filter, fromBlock, toBlock);
   }
 
   private sleep(ms: number): Promise<void> {
