@@ -33,10 +33,10 @@ trap cleanup SIGTERM SIGINT
 echo "📊 Starting Indexer..."
 cd /app/indexer
 
-# Ensure all packages are properly linked
-echo "📊 Linking packages..."
-cd /app
-yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
+# Database directory already created with proper permissions in Dockerfile
+
+# Packages are already installed in the Docker image
+echo "📊 Using pre-installed packages..."
 cd /app/indexer
 
 # Check if dist directory exists, if not build it
@@ -75,8 +75,8 @@ const crypto = require('crypto');
 global.crypto = crypto;
 EOF
 
-# Start backend with crypto polyfill
-node -r ./crypto-polyfill.js dist/main.js &
+# Start backend with crypto polyfill and environment variables
+PORT=${PORT:-4000} node -r ./crypto-polyfill.js dist/main.js &
 BACKEND_PID=$!
 
 # Wait a bit for backend to start

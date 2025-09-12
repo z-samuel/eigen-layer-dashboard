@@ -8,19 +8,18 @@ services:
       - "3000:3000"  # Frontend
       - "4000:4000"  # Backend GraphQL
     volumes:
-      - ./indexer/indexer.db:/app/indexer/indexer.db  # Persist database (overwrites bootstrap data)
       - ./logs:/app/logs  # Optional: for logs
     environment:
       - NODE_ENV=production
       - PORT=4000
       - FRONTEND_PORT=3000
-      # Indexer environment variables
-      - ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/17df8e330cb14b86b3a316d8b6355073
-      - EIGENPOD_MANAGER_ADDRESS=0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338
-      - STAKED_ETH_CONTRACT_ADDRESS=0x00000000219ab540356cbb839cbe05303d7705fa
-      - INDEXER_CRON=* * * * *
-      - MAX_RETRIES=10
-      - RETRY_DELAY_BASE=2
+      # Indexer environment variables (can be overridden)
+      - ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL:-https://mainnet.infura.io/v3/17df8e330cb14b86b3a316d8b6355073}
+      - EIGENPOD_MANAGER_ADDRESS=${EIGENPOD_MANAGER_ADDRESS:-0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338}
+      - STAKED_ETH_CONTRACT_ADDRESS=${STAKED_ETH_CONTRACT_ADDRESS:-0x00000000219ab540356cbb839cbe05303d7705fa}
+      - INDEXER_CRON=${INDEXER_CRON:-* * * * *}
+      - MAX_RETRIES=${MAX_RETRIES:-10}
+      - RETRY_DELAY_BASE=${RETRY_DELAY_BASE:-2}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/graphql', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]

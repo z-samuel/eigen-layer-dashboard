@@ -79,10 +79,9 @@ COPY --from=base --chown=nextjs:nodejs /app/frontend/node_modules ./frontend/nod
 RUN yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
 
 # Create database directory and copy existing database if it exists
-RUN mkdir -p /app/indexer && chown -R nextjs:nodejs /app/indexer
+RUN mkdir -p /app/indexer && chown -R nextjs:nodejs /app/indexer && chmod -R 755 /app/indexer
 
-# Copy existing database as bootstrap data (if it exists)
-COPY --chown=nextjs:nodejs indexer/indexer.db* /app/indexer/
+# Database will be created by the indexer automatically
 
 # Switch to non-root user
 USER nextjs

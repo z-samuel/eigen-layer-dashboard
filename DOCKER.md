@@ -41,9 +41,13 @@ The Docker setup combines all three services (indexer, backend, frontend) into a
 
 2. **Run the container:**
    ```bash
+   # First, build the image
+   docker compose build
+
+   # Then run with the correct image name
    docker run -p 3000:3000 -p 4000:4000 \
      -v $(pwd)/indexer/indexer.db:/app/indexer/indexer.db \
-     eigenlayer-dashboard
+     eigen-layer-dashboard-eigenlayer-dashboard
    ```
 
 ## Services
@@ -73,8 +77,14 @@ The container runs three services:
 
 ### Volumes
 
-- `./indexer/indexer.db:/app/indexer/indexer.db` - Persists the SQLite database
 - `./logs:/app/logs` - Optional: for application logs
+
+**Note**: Database persistence is handled automatically by the indexer. The database file is created at `/app/indexer/indexer.db` inside the container. If you need to persist the database across container restarts, you can add a volume mount:
+
+```yaml
+volumes:
+  - ./indexer/indexer.db:/app/indexer/indexer.db
+```
 
 ### Customizing Indexer Configuration
 
@@ -82,13 +92,13 @@ You can override the default indexer settings by setting environment variables:
 
 ```bash
 # Use a different RPC endpoint
-docker compose up -e ETHEREUM_RPC_URL="https://your-rpc-endpoint.com"
+ETHEREUM_RPC_URL="https://your-rpc-endpoint.com" docker compose up
 
 # Change indexing frequency (every 5 minutes)
-docker compose up -e INDEXER_CRON="*/5 * * * *"
+INDEXER_CRON="*/5 * * * *" docker compose up
 
 # Increase retry attempts
-docker compose up -e MAX_RETRIES="20"
+MAX_RETRIES="20" docker compose up
 ```
 
 Or create a `.env` file in your project root:
@@ -100,18 +110,20 @@ INDEXER_CRON=*/5 * * * *
 MAX_RETRIES=20
 ```
 
-### Bootstrap Data
+### Database Management
 
-The Docker image automatically includes any existing `indexer.db` file as bootstrap data:
+The indexer automatically creates and manages the SQLite database:
 
-- **With existing database**: If `indexer/indexer.db` exists, it's copied into the container
-- **Without existing database**: The indexer will create a new database and start indexing
-- **Volume override**: The volume mount will override the bootstrap data with your local database
+- **Automatic Creation**: The database file is created at `/app/indexer/indexer.db` when the indexer starts
+- **Table Initialization**: All necessary tables and indexes are created automatically
+- **Data Persistence**: Database persists within the container during its lifetime
+- **Volume Mounting**: For data persistence across container restarts, add a volume mount to docker-compose.yml
 
-This allows you to:
-- Start with pre-indexed data for faster initial setup
-- Share a database across different deployments
-- Maintain data persistence across container restarts
+**Database Features:**
+- **EigenPod Events**: Tracks EigenPod deployment events
+- **Staked ETH Events**: Tracks Ethereum 2.0 staking events
+- **Automatic Indexing**: Optimized indexes for fast queries
+- **Shared Access**: Backend services read from the same database
 
 ## Health Checks
 
@@ -259,55 +271,33 @@ docker compose logs -f
 docker compose logs -f eigenlayer-dashboard
 ```
 
-## Bootstrap Data Management
+## Database Persistence
 
-### Creating Bootstrap Data
+### Enabling Database Persistence
 
-To include existing data in your Docker image:
+To persist the database across container restarts:
 
-1. **Run the indexer locally** to create a database:
-   ```bash
-   # Start local development
-   yarn install
-   yarn indexer:start
-   
-   # Wait for indexing to complete
-   # The database will be created at indexer/indexer.db
+1. **Add volume mount** to docker-compose.yml:
+   ```yaml
+   volumes:
+     - ./indexer/indexer.db:/app/indexer/indexer.db
    ```
 
-2. **Build Docker image** with the database:
-   ```bash
-   docker compose build
-   ```
-
-3. **The database is now included** as bootstrap data in the image
-
-### Updating Bootstrap Data
-
-To update the bootstrap data:
-
-1. **Stop the container**:
-   ```bash
-   docker compose down
-   ```
-
-2. **Update your local database**:
-   ```bash
-   # Run indexer to update data
-   yarn indexer:start
-   ```
-
-3. **Rebuild the image**:
-   ```bash
-   docker compose build --no-cache
-   ```
-
-4. **Start with updated data**:
+2. **Start the container**:
    ```bash
    docker compose up
    ```
 
-## Backup and Recovery
+3. **Database will be created** and persisted in `./indexer/indexer.db`
+
+### Custom Database Location
+
+To use a custom database path:
+
+```yaml
+volumes:
+  - ./my-custom-path/eigenlayer.db:/app/indexer/indexer.db
+```
 
 ### Database Backup
 
@@ -319,12 +309,37 @@ docker exec eigenlayer-dashboard sqlite3 /app/indexer/indexer.db ".backup /app/b
 docker cp eigenlayer-dashboard:/app/backup.db ./backup-$(date +%Y%m%d).db
 ```
 
-### Restore Database
+## Troubleshooting
 
-```bash
-# Copy backup to container
-docker cp ./backup.db eigenlayer-dashboard:/app/restore.db
+### Common Issues
 
-# Restore database
-docker exec eigenlayer-dashboard sqlite3 /app/indexer/indexer.db ".restore /app/restore.db"
-```
+1. **Database creation fails:**
+   ```bash
+   # Check container logs
+   docker compose logs eigenlayer-dashboard
+   
+   # Check database directory permissions
+   docker exec eigenlayer-dashboard ls -la /app/indexer/
+   ```
+
+2. **Environment variables not working:**
+   ```bash
+   # Verify environment variables are set
+   docker exec eigenlayer-dashboard env | grep ETHEREUM_RPC_URL
+   ```
+
+3. **Port conflicts:**
+   ```bash
+   # Check if ports are in use
+   lsof -i :3000
+   lsof -i :4000
+   ```
+
+4. **Container won't start:**
+   ```bash
+   # Check container logs
+   docker compose logs eigenlayer-dashboard
+   
+   # Rebuild without cache
+   docker compose build --no-cache
+   ```
