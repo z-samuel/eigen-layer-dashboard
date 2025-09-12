@@ -18,9 +18,8 @@ fi
 cleanup() {
     echo "🛑 Shutting down services..."
     kill $INDEXER_PID $BACKEND_PID $FRONTEND_PID 2>/dev/null
-    # Clean up polyfill and proxy files
+    # Clean up polyfill file
     rm -f /app/backend/crypto-polyfill.js 2>/dev/null || true
-    rm -f /app/frontend/serve-proxy.js 2>/dev/null || true
     wait
     echo "✅ All services stopped"
     exit 0
@@ -75,49 +74,36 @@ const crypto = require('crypto');
 global.crypto = crypto;
 EOF
 
-# Start backend with crypto polyfill and environment variables
-PORT=${PORT:-4000} node -r ./crypto-polyfill.js dist/main.js &
+# Start backend with crypto polyfill
+echo "🔧 Starting Backend on port 4000..."
+node -r ./crypto-polyfill.js dist/main.js &
 BACKEND_PID=$!
+echo "🔧 Backend started with PID: $BACKEND_PID"
 
-# Wait a bit for backend to start
-sleep 3
+# Wait for backend to start and be ready
+echo "⏳ Waiting for backend to be ready..."
+sleep 5
+
+# Test if backend is responding
+for i in {1..10}; do
+  if curl -s http://localhost:4000/graphql > /dev/null 2>&1; then
+    echo "✅ Backend is ready!"
+    break
+  fi
+  echo "⏳ Backend not ready yet, waiting... ($i/10)"
+  sleep 2
+done
 
 # Start Frontend (serve static files)
 echo "🌐 Starting Frontend..."
 cd /app/frontend
 
-# Use npx serve with a simple proxy configuration
-# Create a simple proxy script
-cat > serve-proxy.js << 'EOF'
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const express = require('express');
-const path = require('path');
-
-const app = express();
-
-// Proxy /graphql to backend
-app.use('/graphql', createProxyMiddleware({
-  target: 'http://localhost:4000',
-  changeOrigin: true,
-}));
-
-// Serve static files
-app.use(express.static(path.join(__dirname, 'build')));
-
-// Handle client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
-
-const PORT = process.env.FRONTEND_PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Frontend server running on port ${PORT}`);
-});
-EOF
-
-# Start the frontend server
-node serve-proxy.js &
+# Start frontend with serve (simple static file server)
+echo "🌐 Starting Frontend on port 3000..."
+echo "🌐 Frontend will connect to backend at: http://localhost:4000/graphql"
+npx serve -s build -l 3000 &
 FRONTEND_PID=$!
+echo "🌐 Frontend started with PID: $FRONTEND_PID"
 
 echo "✅ All services started!"
 echo "📊 Indexer PID: $INDEXER_PID"

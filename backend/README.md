@@ -32,8 +32,8 @@ yarn start
 ## API Endpoints
 
 ### GraphQL Subgraph
-- **Endpoint**: `http://localhost:3001/graphql`
-- **Playground**: `http://localhost:3001/graphql` (browser interface)
+- **Endpoint**: `http://localhost:4000/graphql`
+- **Playground**: `http://localhost:4000/graphql` (browser interface)
 
 ## GraphQL Schema
 
@@ -54,7 +54,7 @@ The GraphQL schema provides comprehensive queries for:
 ## Environment Variables
 
 ```bash
-PORT=3001
+PORT=4000
 NODE_ENV=development
 ```
 

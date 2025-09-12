@@ -7,7 +7,7 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:3000', 'http://localhost:4000'],
     credentials: true,
   });
 
@@ -15,7 +15,7 @@ async function bootstrap() {
   const materializedViewService = app.get(MaterializedViewService);
   await materializedViewService.initialize();
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 4000;
   await app.listen(port);
   console.log(`🚀 Backend server running on http://localhost:${port}`);
   console.log(`🔍 GraphQL Playground available at http://localhost:${port}/graphql`);

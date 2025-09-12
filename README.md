@@ -61,14 +61,19 @@ For detailed Docker instructions, see [DOCKER.md](./DOCKER.md).
 yarn install
 ```
 
-2. Start both frontend and backend in development mode:
+2. Build
+```bash
+yarn build
+```
+
+3. Start both frontend and backend in development mode:
 ```bash
 yarn dev
 ```
 
 This will start:
-- Backend API on http://localhost:3001
-- GraphQL Playground on http://localhost:3001/graphql
+- Backend API on http://localhost:4000
+- GraphQL Playground on http://localhost:4000/graphql
 - Frontend app on http://localhost:3000
 
 ### Individual Services
@@ -205,8 +210,8 @@ yarn lint
 ## 🌐 API Endpoints
 
 ### GraphQL Subgraph
-**Endpoint**: `http://localhost:3001/graphql`  
-**Playground**: `http://localhost:3001/graphql` (accessible via browser)
+**Endpoint**: `http://localhost:4000/graphql`
+**Playground**: `http://localhost:4000/graphql` (accessible via browser)
 
 The GraphQL subgraph provides a unified interface for all data queries with flexible, type-safe requests. The playground includes pre-configured sample queries organized in tabs:
 
@@ -527,13 +532,13 @@ Create `.env` files in the respective app directories as needed:
 
 ### Backend (`backend/.env`)
 ```
-PORT=3001
+PORT=4000
 NODE_ENV=development
 ```
 
 ### Frontend (`frontend/.env`)
 ```
-REACT_APP_API_URL=http://localhost:3001
+REACT_APP_API_URL=http://localhost:4000
 ```
 
 ### Indexer (`indexer/.env`)

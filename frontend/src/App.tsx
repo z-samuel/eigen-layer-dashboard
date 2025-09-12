@@ -119,7 +119,7 @@ function App() {
               </Typography>
               <Typography>{error}</Typography>
               <Typography variant="body2" color="text.secondary">
-                Make sure the backend server is running on port 3001
+                Make sure the backend server is running on port 4000
               </Typography>
             </Alert>
           )}

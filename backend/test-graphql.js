@@ -17,7 +17,7 @@ setTimeout(() => {
   console.log('Testing GraphQL endpoint...');
   
   const { exec: execTest } = require('child_process');
-  execTest('curl -s "http://localhost:3001/graphql" -H "Content-Type: application/json" -d \'{"query":"{ health { status timestamp service } }"}\'', (error, stdout, stderr) => {
+  execTest('curl -s "http://localhost:4000/graphql" -H "Content-Type: application/json" -d \'{"query":"{ health { status timestamp service } }"}\'', (error, stdout, stderr) => {
     if (error) {
       console.error('Test error:', error);
     } else {

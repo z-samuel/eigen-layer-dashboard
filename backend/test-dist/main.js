@@ -50,7 +50,7 @@ function bootstrap() {
                     app = _a.sent();
                     // Enable CORS
                     app.enableCors({
-                        origin: ['http://localhost:3000', 'http://localhost:3001'],
+                        origin: ['http://localhost:3000', 'http://localhost:4000'],
                         credentials: true,
                     });
                     // Global validation pipe
@@ -67,7 +67,7 @@ function bootstrap() {
                         .build();
                     document = swagger_1.SwaggerModule.createDocument(app, config);
                     swagger_1.SwaggerModule.setup('api', app, document);
-                    port = process.env.PORT || 3001;
+                    port = process.env.PORT || 4000;
                     return [4 /*yield*/, app.listen(port)];
                 case 2:
                     _a.sent();

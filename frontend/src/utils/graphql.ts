@@ -9,7 +9,9 @@ import {
   StrategyResponse
 } from '@eigen-layer-dashboard/lib';
 
-const GRAPHQL_ENDPOINT = '/graphql';
+const GRAPHQL_ENDPOINT = process.env.NODE_ENV === 'production' 
+  ? 'http://localhost:4000/graphql' 
+  : '/graphql';
 
 export class GraphQLClient {
   private static async query<T>(query: string, variables?: any): Promise<T> {
@@ -41,7 +43,7 @@ export class GraphQLClient {
         throw new Error(`GraphQL server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
       } else if (error.request) {
         // Request was made but no response received
-        throw new Error(`GraphQL network error: Unable to connect to backend server. Make sure the backend is running on port 3001.`);
+        throw new Error(`GraphQL network error: Unable to connect to backend server. Make sure the backend is running on port 4000.`);
       } else {
         // Something else happened
         throw new Error(`GraphQL error: ${error.message}`);

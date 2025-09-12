@@ -288,8 +288,8 @@ The staking history indexer provides comprehensive data for analyzing Ethereum 2
 The indexed data is accessible through the backend service via the GraphQL subgraph:
 
 ### GraphQL Subgraph
-- **Endpoint**: `http://localhost:3001/graphql`
-- **Playground**: `http://localhost:3001/graphql` (browser interface)
+- **Endpoint**: `http://localhost:4000/graphql`
+- **Playground**: `http://localhost:4000/graphql` (browser interface)
 - **Benefits**: Type-safe, flexible queries, single endpoint for all data
 
 ### Example GraphQL Queries
