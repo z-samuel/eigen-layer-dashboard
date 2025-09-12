@@ -17,9 +17,10 @@ out/
 .env.production.local
 
 # Database files
-# *.db
+*.db
 *.sqlite
 *.sqlite3
+indexer/indexer.db
 
 # Logs
 npm-debug.log*
