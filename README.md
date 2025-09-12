@@ -2,6 +2,8 @@
 
 A modern monorepo containing a NestJS backend with GraphQL subgraph, React frontend, and event indexer for monitoring and managing EigenLayer operations.
 
+Quick Demo: [Link](./demo.mp4)
+
 ## 🏗️ Project Structure
 
 ```
@@ -19,10 +21,33 @@ eigen-layer-dashboard/
 ├── package.json          # Root workspace configuration
 ├── tsconfig.json         # Shared TypeScript configuration
 ├── .eslintrc.js         # Shared ESLint configuration
-└── .prettierrc          # Shared Prettier configuration
+├── .prettierrc          # Shared Prettier configuration
+├── Dockerfile           # Multi-stage Docker build
+├── docker-compose.yml   # Docker Compose configuration
+├── docker-entrypoint.sh # Container startup script
+├── docker-build.sh      # Build helper script
+├── .dockerignore        # Docker ignore patterns
+└── DOCKER.md            # Docker documentation
 ```
 
 ## 🚀 Quick Start
+
+### Option 1: Docker (Recommended)
+
+The easiest way to run the entire application is using Docker:
+
+```bash
+# Build and start all services
+docker compose up --build
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:4000/graphql
+```
+
+For detailed Docker instructions, see [DOCKER.md](./DOCKER.md).
+
+### Option 2: Local Development
 
 ### Prerequisites
 
