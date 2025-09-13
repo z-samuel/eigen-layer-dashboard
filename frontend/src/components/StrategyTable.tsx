@@ -18,7 +18,7 @@ import {
   Button,
   TableSortLabel
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, OpenInNew } from '@mui/icons-material';
 import { Strategy } from '@eigen-layer-dashboard/lib';
 
 type SortField = 'lastUpdateBlockTimestamp' | 'createdAtBlockNumber' | 'totalShares' | 'operatorCount' | 'stakerCount' | 'avsCount';
@@ -56,6 +56,10 @@ const StrategyTable: React.FC<StrategyTableProps> = ({
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const getEtherscanAddressUrl = (address: string): string => {
+    return `https://etherscan.io/address/${address}`;
   };
 
   const formatDate = (timestamp: number) => {
@@ -244,6 +248,26 @@ const StrategyTable: React.FC<StrategyTableProps> = ({
                       <Typography variant="caption" color="text.secondary">
                         {strategy.token.name}
                       </Typography>
+                      {strategy.token.address !== 'unknown' && (
+                        <>
+                          <br />
+                          <Link
+                            href={getEtherscanAddressUrl(strategy.token.address)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ 
+                              textDecoration: 'none',
+                              color: 'primary.main',
+                              fontFamily: 'monospace',
+                              fontSize: '0.75rem',
+                              '&:hover': { textDecoration: 'underline' }
+                            }}
+                          >
+                            {formatAddress(strategy.token.address)}
+                            <OpenInNew sx={{ fontSize: 10, ml: 0.5 }} />
+                          </Link>
+                        </>
+                      )}
                     </Box>
                   </TableCell>
                   <TableCell>

@@ -18,7 +18,7 @@ import {
   Tooltip,
   Link
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, OpenInNew } from '@mui/icons-material';
 import { EigenPod } from '@eigen-layer-dashboard/lib';
 
 interface EigenPodTableProps {
@@ -47,6 +47,10 @@ const EigenPodTable: React.FC<EigenPodTableProps> = ({
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const getEtherscanAddressUrl = (address: string): string => {
+    return `https://etherscan.io/address/${address}`;
   };
 
   const getEtherscanUrl = (txHash: string) => {
@@ -142,18 +146,42 @@ const EigenPodTable: React.FC<EigenPodTableProps> = ({
                     <Chip label={pod.id} size="small" color="primary" variant="outlined" />
                   </TableCell>
                   <TableCell sx={{ fontFamily: 'monospace' }}>
-                    <Tooltip title={pod.eigenPod}>
-                      <Typography variant="body2">
-                        {formatAddress(pod.eigenPod)}
-                      </Typography>
-                    </Tooltip>
+                    <Link
+                      href={getEtherscanAddressUrl(pod.eigenPod)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ 
+                        textDecoration: 'none',
+                        color: 'primary.main',
+                        '&:hover': { textDecoration: 'underline' }
+                      }}
+                    >
+                      <Tooltip title={pod.eigenPod}>
+                        <Typography variant="body2">
+                          {formatAddress(pod.eigenPod)}
+                          <OpenInNew sx={{ fontSize: 12, ml: 0.5 }} />
+                        </Typography>
+                      </Tooltip>
+                    </Link>
                   </TableCell>
                   <TableCell sx={{ fontFamily: 'monospace' }}>
-                    <Tooltip title={pod.podOwner}>
-                      <Typography variant="body2">
-                        {formatAddress(pod.podOwner)}
-                      </Typography>
-                    </Tooltip>
+                    <Link
+                      href={getEtherscanAddressUrl(pod.podOwner)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ 
+                        textDecoration: 'none',
+                        color: 'primary.main',
+                        '&:hover': { textDecoration: 'underline' }
+                      }}
+                    >
+                      <Tooltip title={pod.podOwner}>
+                        <Typography variant="body2">
+                          {formatAddress(pod.podOwner)}
+                          <OpenInNew sx={{ fontSize: 12, ml: 0.5 }} />
+                        </Typography>
+                      </Tooltip>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">

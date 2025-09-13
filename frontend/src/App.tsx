@@ -20,6 +20,8 @@ import { HealthStatus } from '@eigen-layer-dashboard/lib';
 import StakedEthDashboard from './components/StakedEthDashboard';
 import EigenPodDashboard from './components/EigenPodDashboard';
 import StrategyDashboard from './components/StrategyDashboard';
+import DepositsDashboard from './components/DepositsDashboard';
+import WithdrawalsDashboard from './components/WithdrawalsDashboard';
 
 // Create a custom theme
 const theme = createTheme({
@@ -37,7 +39,7 @@ function App() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'eigenpods' | 'strategies'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'eigenpods' | 'strategies' | 'deposits' | 'withdrawals'>('overview');
 
   useEffect(() => {
     const fetchHealthStatus = async () => {
@@ -90,14 +92,28 @@ function App() {
                   color={activeTab === 'eigenpods' ? 'primary' : 'inherit'}
                   onClick={() => setActiveTab('eigenpods')}
                 >
-                  EigenPod Dashboard
+                  EigenPod
                 </Button>
                 <Button
                   variant={activeTab === 'strategies' ? 'contained' : 'outlined'}
                   color={activeTab === 'strategies' ? 'primary' : 'inherit'}
                   onClick={() => setActiveTab('strategies')}
                 >
-                  Strategy Dashboard
+                  Strategy
+                </Button>
+                <Button
+                  variant={activeTab === 'deposits' ? 'contained' : 'outlined'}
+                  color={activeTab === 'deposits' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('deposits')}
+                >
+                  Deposits
+                </Button>
+                <Button
+                  variant={activeTab === 'withdrawals' ? 'contained' : 'outlined'}
+                  color={activeTab === 'withdrawals' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('withdrawals')}
+                >
+                  Withdrawals
                 </Button>
               </Stack>
             </Stack>
@@ -149,6 +165,14 @@ function App() {
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Chip label="✅" color="success" size="small" />
+                        <Typography>Deposits Analytics Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>Withdrawals Analytics Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
                         <Typography>Real-time Staking Data</Typography>
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
@@ -169,6 +193,8 @@ function App() {
           {activeTab === 'analytics' && <StakedEthDashboard />}
           {activeTab === 'eigenpods' && <EigenPodDashboard />}
           {activeTab === 'strategies' && <StrategyDashboard />}
+          {activeTab === 'deposits' && <DepositsDashboard />}
+          {activeTab === 'withdrawals' && <WithdrawalsDashboard />}
         </Container>
       </Box>
     </ThemeProvider>
