@@ -548,6 +548,798 @@ export class GraphQLClient {
       }
     }
   }
+
+  static async getOperators(
+    skip: number = 0,
+    limit: number = 100
+  ): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetOperators($skip: Int!, $first: Int!) {
+        operators(
+          skip: $skip,
+          first: $first,
+          orderBy: lastUpdateBlockTimestamp,
+          orderDirection: desc
+        ) {
+          id
+          strategyCount
+          operatorSetCount
+          stakerCount
+          avsCount
+          metadataURI
+          delegationApprover
+          slashingCount
+          registeredTransactionHash
+          registeredBlockNumber
+          registeredBlockTimestamp
+          lastUpdateBlockNumber
+          lastUpdateBlockTimestamp
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { skip, first: limit } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { skip, first: limit }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const operators = response.data.data?.operators || [];
+
+      return {
+        operators: operators.map((operator: any) => ({
+          id: operator.id,
+          strategyCount: parseInt(operator.strategyCount) || 0,
+          operatorSetCount: parseInt(operator.operatorSetCount) || 0,
+          stakerCount: parseInt(operator.stakerCount) || 0,
+          avsCount: parseInt(operator.avsCount) || 0,
+          metadataURI: operator.metadataURI,
+          delegationApprover: operator.delegationApprover,
+          slashingCount: parseInt(operator.slashingCount) || 0,
+          registeredTransactionHash: operator.registeredTransactionHash,
+          registeredBlockNumber: parseInt(operator.registeredBlockNumber) || 0,
+          registeredBlockTimestamp: parseInt(operator.registeredBlockTimestamp) || 0,
+          lastUpdateBlockNumber: parseInt(operator.lastUpdateBlockNumber) || 0,
+          lastUpdateBlockTimestamp: parseInt(operator.lastUpdateBlockTimestamp) || 0,
+        })),
+        total: operators.length, // Note: Subgraph doesn't provide total count, using current page length
+      };
+    } catch (error: any) {
+      console.error('Error fetching operators from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`Operators service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getOperatorStrategies(operatorId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetOperatorStrategies($operatorId: String!) {
+        operators(where: { id: $operatorId }) {
+          strategies {
+            strategy {
+              id
+              avsCount
+              stakerCount
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { operatorId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { operatorId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const operators = response.data.data?.operators || [];
+      const operator = operators[0];
+
+      if (!operator) {
+        return { strategies: [] };
+      }
+
+      const strategies = operator.strategies?.map((item: any) => ({
+        id: item.strategy?.id || 'unknown',
+        avsCount: parseInt(item.strategy?.avsCount) || 0,
+        stakerCount: parseInt(item.strategy?.stakerCount) || 0,
+      })) || [];
+
+      return { strategies };
+    } catch (error: any) {
+      console.error('Error fetching operator strategies from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`Operator strategies service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getOperatorAVSs(operatorId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetOperatorAVSs($operatorId: String!) {
+        operators(where: { id: $operatorId }) {
+          avss {
+            avs {
+              id
+              owner
+              operatorCount
+              operatorSetCount
+              strategyCount
+              slashingCount
+              lastUpdateBlockNumber
+              lastUpdateBlockTimestamp
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { operatorId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { operatorId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const operators = response.data.data?.operators || [];
+      const operator = operators[0];
+
+      if (!operator) {
+        return { avss: [] };
+      }
+
+      const avss = operator.avss?.map((item: any) => ({
+        id: item.avs?.id || 'unknown',
+        owner: item.avs?.owner || 'unknown',
+        operatorCount: parseInt(item.avs?.operatorCount) || 0,
+        operatorSetCount: parseInt(item.avs?.operatorSetCount) || 0,
+        strategyCount: parseInt(item.avs?.strategyCount) || 0,
+        slashingCount: parseInt(item.avs?.slashingCount) || 0,
+        lastUpdateBlockNumber: parseInt(item.avs?.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(item.avs?.lastUpdateBlockTimestamp) || 0,
+      })) || [];
+
+      return { avss };
+    } catch (error: any) {
+      console.error('Error fetching operator AVSs from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`Operator AVSs service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getOperatorStakers(operatorId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetOperatorStakers($operatorId: String!) {
+        operators(where: { id: $operatorId }) {
+          stakerCount
+          stakers {
+            staker {
+              address
+              operatorCount
+              depositCount
+              withdrawalCount
+              delegationCount
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { operatorId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { operatorId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const operators = response.data.data?.operators || [];
+      const operator = operators[0];
+
+      if (!operator) {
+        return { stakers: [], stakerCount: 0 };
+      }
+
+      const stakers = operator.stakers?.map((item: any) => ({
+        address: item.staker?.address || 'unknown',
+        operatorCount: parseInt(item.staker?.operatorCount) || 0,
+        depositCount: parseInt(item.staker?.depositCount) || 0,
+        withdrawalCount: parseInt(item.staker?.withdrawalCount) || 0,
+        delegationCount: parseInt(item.staker?.delegationCount) || 0,
+      })) || [];
+
+      return { 
+        stakers,
+        stakerCount: parseInt(operator.stakerCount) || 0
+      };
+    } catch (error: any) {
+      console.error('Error fetching operator stakers from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`Operator stakers service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getOperatorSets(skip: number = 0, limit: number = 20): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetOperatorSets($skip: Int!, $limit: Int!) {
+        operatorSets(
+          skip: $skip
+          first: $limit
+          orderBy: lastUpdateBlockTimestamp
+          orderDirection: desc
+        ) {
+          id
+          avs {
+            id
+            owner
+            lastUpdateBlockNumber
+            lastUpdateBlockTimestamp
+          }
+          owner
+          operatorCount
+          strategyCount
+          stakerCount
+          slashingCount
+          lastUpdateBlockNumber
+          lastUpdateBlockTimestamp
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { skip, limit } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { skip, limit }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const operatorSets = response.data.data?.operatorSets || [];
+
+      const mappedOperatorSets = operatorSets.map((operatorSet: any) => ({
+        id: operatorSet.id || 'unknown',
+        avs: {
+          id: operatorSet.avs?.id || 'unknown',
+          owner: operatorSet.avs?.owner || 'unknown',
+          lastUpdateBlockNumber: parseInt(operatorSet.avs?.lastUpdateBlockNumber) || 0,
+          lastUpdateBlockTimestamp: parseInt(operatorSet.avs?.lastUpdateBlockTimestamp) || 0,
+        },
+        owner: operatorSet.owner || 'unknown',
+        operatorCount: parseInt(operatorSet.operatorCount) || 0,
+        strategyCount: parseInt(operatorSet.strategyCount) || 0,
+        stakerCount: parseInt(operatorSet.stakerCount) || 0,
+        slashingCount: parseInt(operatorSet.slashingCount) || 0,
+        lastUpdateBlockNumber: parseInt(operatorSet.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(operatorSet.lastUpdateBlockTimestamp) || 0,
+      }));
+
+      return { operatorSets: mappedOperatorSets };
+    } catch (error: any) {
+      console.error('Error fetching operator sets from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`Operator sets service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getOperatorSetOperators(operatorSetId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetOperatorSetOperators($operatorSetId: String!) {
+        operatorSets(where: { id: $operatorSetId }) {
+          operators {
+            operator {
+              id
+              avsCount
+              strategyCount
+              stakerCount
+              lastUpdateBlockNumber
+              lastUpdateBlockTimestamp
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { operatorSetId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { operatorSetId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const operatorSets = response.data.data?.operatorSets || [];
+      const operatorSet = operatorSets[0];
+
+      if (!operatorSet) {
+        return { operators: [] };
+      }
+
+      const operators = operatorSet.operators?.map((item: any) => ({
+        id: item.operator?.id || 'unknown',
+        avsCount: parseInt(item.operator?.avsCount) || 0,
+        strategyCount: parseInt(item.operator?.strategyCount) || 0,
+        stakerCount: parseInt(item.operator?.stakerCount) || 0,
+        lastUpdateBlockNumber: parseInt(item.operator?.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(item.operator?.lastUpdateBlockTimestamp) || 0,
+      })) || [];
+
+      return { operators };
+    } catch (error: any) {
+      console.error('Error fetching operator set operators from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`Operator set operators service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getOperatorSetStrategies(operatorSetId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetOperatorSetStrategies($operatorSetId: String!) {
+        operatorSets(where: { id: $operatorSetId }) {
+          strategies {
+            strategy {
+              id
+              avsCount
+              stakerCount
+              lastUpdateBlockNumber
+              lastUpdateBlockTimestamp
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { operatorSetId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { operatorSetId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const operatorSets = response.data.data?.operatorSets || [];
+      const operatorSet = operatorSets[0];
+
+      if (!operatorSet) {
+        return { strategies: [] };
+      }
+
+      const strategies = operatorSet.strategies?.map((item: any) => ({
+        id: item.strategy?.id || 'unknown',
+        avsCount: parseInt(item.strategy?.avsCount) || 0,
+        stakerCount: parseInt(item.strategy?.stakerCount) || 0,
+        lastUpdateBlockNumber: parseInt(item.strategy?.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(item.strategy?.lastUpdateBlockTimestamp) || 0,
+      })) || [];
+
+      return { strategies };
+    } catch (error: any) {
+      console.error('Error fetching operator set strategies from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`Operator set strategies service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getAVSs(skip: number = 0, limit: number = 20): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetAVSs($skip: Int!, $limit: Int!) {
+        avss(
+          skip: $skip
+          first: $limit
+          orderBy: lastUpdateBlockTimestamp
+          orderDirection: desc
+        ) {
+          id
+          owner
+          operatorCount
+          operatorSetCount
+          slashingCount
+          strategyCount
+          stakerCount
+          lastUpdateBlockNumber
+          lastUpdateBlockTimestamp
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { skip, limit } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { skip, limit }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const avss = response.data.data?.avss || [];
+
+      const mappedAVSs = avss.map((avs: any) => ({
+        id: avs.id || 'unknown',
+        owner: avs.owner || 'unknown',
+        operatorCount: parseInt(avs.operatorCount) || 0,
+        operatorSetCount: parseInt(avs.operatorSetCount) || 0,
+        slashingCount: parseInt(avs.slashingCount) || 0,
+        strategyCount: parseInt(avs.strategyCount) || 0,
+        stakerCount: parseInt(avs.stakerCount) || 0,
+        lastUpdateBlockNumber: parseInt(avs.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(avs.lastUpdateBlockTimestamp) || 0,
+      }));
+
+      return { avss: mappedAVSs };
+    } catch (error: any) {
+      console.error('Error fetching AVSs from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`AVSs service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getAVSOperators(avsId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetAVSOperators($avsId: String!) {
+        avss(where: { id: $avsId }) {
+          operators {
+            operator {
+              id
+              strategyCount
+              stakerCount
+              avsCount
+              slashingCount
+              lastUpdateBlockNumber
+              lastUpdateBlockTimestamp
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { avsId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { avsId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const avss = response.data.data?.avss || [];
+      const avs = avss[0];
+
+      if (!avs) {
+        return { operators: [] };
+      }
+
+      const operators = avs.operators?.map((item: any) => ({
+        id: item.operator?.id || 'unknown',
+        strategyCount: parseInt(item.operator?.strategyCount) || 0,
+        stakerCount: parseInt(item.operator?.stakerCount) || 0,
+        avsCount: parseInt(item.operator?.avsCount) || 0,
+        slashingCount: parseInt(item.operator?.slashingCount) || 0,
+        lastUpdateBlockNumber: parseInt(item.operator?.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(item.operator?.lastUpdateBlockTimestamp) || 0,
+      })) || [];
+
+      return { operators };
+    } catch (error: any) {
+      console.error('Error fetching AVS operators from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`AVS operators service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getAVSOperatorSets(avsId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetAVSOperatorSets($avsId: String!) {
+        avss(where: { id: $avsId }) {
+          operatorSets {
+            id
+            avs {
+              id
+            }
+            operatorCount
+            strategyCount
+            slashingCount
+            lastUpdateBlockNumber
+            lastUpdateBlockTimestamp
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { avsId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { avsId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const avss = response.data.data?.avss || [];
+      const avs = avss[0];
+
+      if (!avs) {
+        return { operatorSets: [] };
+      }
+
+      const operatorSets = avs.operatorSets?.map((item: any) => ({
+        id: item.id || 'unknown',
+        operatorCount: parseInt(item.operatorCount) || 0,
+        strategyCount: parseInt(item.strategyCount) || 0,
+        slashingCount: parseInt(item.slashingCount) || 0,
+        lastUpdateBlockNumber: parseInt(item.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(item.lastUpdateBlockTimestamp) || 0,
+      })) || [];
+
+      return { operatorSets };
+    } catch (error: any) {
+      console.error('Error fetching AVS operator sets from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`AVS operator sets service error: ${error.message}`);
+      }
+    }
+  }
+
+  static async getAVSStrategies(avsId: string): Promise<any> {
+    const subgraphUrl = 'https://subgraph.satsuma-prod.com/027e731a6242/eigenlabs/eigen-graph-mainnet/api';
+
+    const query = `
+      query GetAVSStrategies($avsId: String!) {
+        avss(where: { id: $avsId }) {
+          strategies {
+            strategy {
+              id
+              token
+              totalShares
+              exchangeRate
+              stakerCount
+              operatorCount
+              lastUpdateBlockNumber
+              lastUpdateBlockTimestamp
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      console.log('GraphQL query to subgraph:', { endpoint: subgraphUrl, query, variables: { avsId } });
+
+      const response = await axios.post(subgraphUrl, {
+        query,
+        variables: { avsId }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log('Subgraph response:', response.data);
+
+      if (response.data.errors) {
+        throw new Error(`Subgraph errors: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const avss = response.data.data?.avss || [];
+      const avs = avss[0];
+
+      if (!avs) {
+        return { strategies: [] };
+      }
+
+      const strategies = avs.strategies?.map((item: any) => ({
+        id: item.strategy?.id || 'unknown',
+        token: item.strategy?.token || null,
+        totalShares: item.strategy?.totalShares || '0',
+        exchangeRate: item.strategy?.exchangeRate || '0',
+        stakerCount: parseInt(item.strategy?.stakerCount) || 0,
+        operatorCount: parseInt(item.strategy?.operatorCount) || 0,
+        lastUpdateBlockNumber: parseInt(item.strategy?.lastUpdateBlockNumber) || 0,
+        lastUpdateBlockTimestamp: parseInt(item.strategy?.lastUpdateBlockTimestamp) || 0,
+      })) || [];
+
+      return { strategies };
+    } catch (error: any) {
+      console.error('Error fetching AVS strategies from subgraph:', error);
+
+      if (error.response) {
+        throw new Error(`Subgraph server error: ${error.response.status} - ${error.response.data?.message || error.message}`);
+      } else if (error.request) {
+        throw new Error('Subgraph network error: Unable to connect to subgraph server');
+      } else {
+        throw new Error(`AVS strategies service error: ${error.message}`);
+      }
+    }
+  }
 }
 
 // Convenience exports
@@ -559,3 +1351,14 @@ export const queryDeposits = GraphQLClient.getDeposits;
 export const queryStrategies = GraphQLClient.getStrategies;
 export const queryTokens = GraphQLClient.getTokens;
 export const queryWithdrawals = GraphQLClient.getWithdrawals;
+export const queryOperators = GraphQLClient.getOperators;
+export const queryOperatorStrategies = GraphQLClient.getOperatorStrategies;
+export const queryOperatorAVSs = GraphQLClient.getOperatorAVSs;
+export const queryOperatorStakers = GraphQLClient.getOperatorStakers;
+export const queryOperatorSets = GraphQLClient.getOperatorSets;
+export const queryOperatorSetOperators = GraphQLClient.getOperatorSetOperators;
+export const queryOperatorSetStrategies = GraphQLClient.getOperatorSetStrategies;
+export const queryAVSs = GraphQLClient.getAVSs;
+export const queryAVSOperators = GraphQLClient.getAVSOperators;
+export const queryAVSOperatorSets = GraphQLClient.getAVSOperatorSets;
+export const queryAVSStrategies = GraphQLClient.getAVSStrategies;

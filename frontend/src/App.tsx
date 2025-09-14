@@ -22,6 +22,9 @@ import EigenPodDashboard from './components/EigenPodDashboard';
 import StrategyDashboard from './components/StrategyDashboard';
 import DepositsDashboard from './components/DepositsDashboard';
 import WithdrawalsDashboard from './components/WithdrawalsDashboard';
+import OperatorsDashboard from './components/OperatorsDashboard';
+import OperatorSetsDashboard from './components/OperatorSetsDashboard';
+import AVSDashboard from './components/AVSDashboard';
 
 // Create a custom theme
 const theme = createTheme({
@@ -39,7 +42,7 @@ function App() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'eigenpods' | 'strategies' | 'deposits' | 'withdrawals'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'eigenpods' | 'strategies' | 'deposits' | 'withdrawals' | 'operators' | 'operator-sets' | 'avs'>('overview');
 
   useEffect(() => {
     const fetchHealthStatus = async () => {
@@ -115,6 +118,27 @@ function App() {
                 >
                   Withdrawals
                 </Button>
+                <Button
+                  variant={activeTab === 'operators' ? 'contained' : 'outlined'}
+                  color={activeTab === 'operators' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('operators')}
+                >
+                  Operators
+                </Button>
+                <Button
+                  variant={activeTab === 'operator-sets' ? 'contained' : 'outlined'}
+                  color={activeTab === 'operator-sets' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('operator-sets')}
+                >
+                  Operator Sets
+                </Button>
+                <Button
+                  variant={activeTab === 'avs' ? 'contained' : 'outlined'}
+                  color={activeTab === 'avs' ? 'primary' : 'inherit'}
+                  onClick={() => setActiveTab('avs')}
+                >
+                  AVS
+                </Button>
               </Stack>
             </Stack>
           </Container>
@@ -173,6 +197,18 @@ function App() {
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Chip label="✅" color="success" size="small" />
+                        <Typography>Operators Analytics Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>Operator Sets Analytics Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
+                        <Typography>AVS Analytics Dashboard</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label="✅" color="success" size="small" />
                         <Typography>Real-time Staking Data</Typography>
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
@@ -195,6 +231,9 @@ function App() {
           {activeTab === 'strategies' && <StrategyDashboard />}
           {activeTab === 'deposits' && <DepositsDashboard />}
           {activeTab === 'withdrawals' && <WithdrawalsDashboard />}
+          {activeTab === 'operators' && <OperatorsDashboard />}
+          {activeTab === 'operator-sets' && <OperatorSetsDashboard />}
+          {activeTab === 'avs' && <AVSDashboard />}
         </Container>
       </Box>
     </ThemeProvider>
