@@ -1,19 +1,23 @@
 import dotenv from 'dotenv';
 import * as cron from 'node-cron';
 import { IndexerScheduler } from './scheduler';
-import { DatabaseService } from './database';
+import { IndexerDatabaseService } from './database';
 import { StakedEthIndexer } from './staked-eth-indexer';
 import path from 'path';
 
 // Load environment variables from .env file
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
-
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 const RPC_URL = process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo';
 const CONTRACT_ADDRESS = process.env.EIGENPOD_MANAGER_ADDRESS || '0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338';
 const STAKED_ETH_CONTRACT_ADDRESS = process.env.STAKED_ETH_CONTRACT_ADDRESS || '0x00000000219ab540356cbb839cbe05303d7705fa';
 const CRON_EXPRESSION = process.env.INDEXER_CRON || '* * * * *';
 const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || '10');
 const RETRY_DELAY_BASE = parseInt(process.env.RETRY_DELAY_BASE || '2');
+
+// Determine database type
+const DB_URL = process.env.DB_URL;
+const DATABASE_TYPE = DB_URL ? 'PostgreSQL' : 'SQLite';
+const DATABASE_PATH = DB_URL ? DB_URL.split('@')[1] || 'PostgreSQL' : './indexer.db';
 
 async function main() {
   const scheduler = new IndexerScheduler(RPC_URL, CONTRACT_ADDRESS, MAX_RETRIES, RETRY_DELAY_BASE);
@@ -56,7 +60,7 @@ async function main() {
       console.log(`EigenPod Contract Address: ${CONTRACT_ADDRESS}`);
       console.log(`Staked ETH Contract Address: ${STAKED_ETH_CONTRACT_ADDRESS}`);
       console.log(`Cron Expression: ${CRON_EXPRESSION}`);
-      console.log(`Database Path: ./indexer.db`);
+      console.log(`Database: ${DATABASE_TYPE} (${DATABASE_PATH})`);
       
       // Start EigenPod indexer scheduler
       scheduler.start(CRON_EXPRESSION);
@@ -123,6 +127,9 @@ async function main() {
       }
       
     } else if (args[0] === 'staked-eth') {
+      // Initialize staked ETH indexer
+      await stakedEthIndexer.initialize();
+      
       // Staked ETH indexer commands
       if (args[1] === 'run-once') {
         console.log('Running staked ETH indexer once...');
@@ -134,7 +141,7 @@ async function main() {
         console.log(`RPC URL: ${RPC_URL}`);
         console.log(`Staked ETH Contract Address: ${STAKED_ETH_CONTRACT_ADDRESS}`);
         console.log(`Cron Expression: ${CRON_EXPRESSION}`);
-        console.log(`Database Path: ./indexer.db`);
+        console.log(`Database: ${DATABASE_TYPE} (${DATABASE_PATH})`);
         
         stakedEthCron = cron.schedule(CRON_EXPRESSION, async () => {
           try {
@@ -151,7 +158,7 @@ async function main() {
         // Keep the process running
         setInterval(async () => {
           const status = await stakedEthIndexer.getIndexingStatus();
-          console.log(`Staked ETH Status - Last indexed: ${status.lastIndexedBlock}, Current: ${status.currentBlock}, Events: ${status.totalEvents}, Running: ${status.isRunning}`);
+          console.log(`Staked ETH Status - Last indexed: ${status.lastIndexedBlock}, Current: ${status.currentBlock}, Running: ${status.isRunning}`);
         }, 60000); // Log status every minute
         
       } else if (args[1] === 'backfill' && args[2] && args[3]) {
@@ -197,14 +204,14 @@ async function main() {
         console.log(`RPC URL: ${RPC_URL}`);
         console.log(`Contract Address: ${CONTRACT_ADDRESS}`);
         console.log(`Cron Expression: ${CRON_EXPRESSION}`);
-        console.log(`Database Path: ./indexer.db`);
+        console.log(`Database: ${DATABASE_TYPE} (${DATABASE_PATH})`);
         
         scheduler.start(CRON_EXPRESSION);
         
         // Keep the process running
         setInterval(async () => {
           const status = await scheduler.getStatus();
-          console.log(`EigenPod Status - Last indexed: ${status.lastIndexedBlock}, Current: ${status.currentBlock}, Events: ${status.totalEvents}, Running: ${status.isRunning}`);
+          console.log(`EigenPod Status - Last indexed: ${status.lastIndexedBlock}, Current: ${status.currentBlock}, Running: ${status.isRunning}`);
         }, 60000); // Log status every minute
         
       } else if (args[1] === 'backfill' && args[2] && args[3]) {

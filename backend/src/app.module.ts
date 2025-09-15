@@ -2,15 +2,20 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { EigenPodService } from './eigenpod.service';
 import { StakedEthService } from './staked-eth.service';
 import { MaterializedViewService } from './materialized-view.service';
 import { GraphQLResolver } from './graphql.resolver';
+import { getTypeOrmConfig } from './typeorm.config';
+import { PodDeployedEvent, StakedEthEvent } from '@eigen-layer-dashboard/lib';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    TypeOrmModule.forRoot(getTypeOrmConfig()),
+    TypeOrmModule.forFeature([PodDeployedEvent, StakedEthEvent]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),

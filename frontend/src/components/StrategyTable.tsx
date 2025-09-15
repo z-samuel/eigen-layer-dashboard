@@ -19,7 +19,7 @@ import {
   TableSortLabel
 } from '@mui/material';
 import { Visibility, VisibilityOff, OpenInNew } from '@mui/icons-material';
-import { Strategy } from '@eigen-layer-dashboard/lib';
+import { Strategy } from '@eigen-layer-dashboard/lib/frontend-types';
 
 type SortField = 'lastUpdateBlockTimestamp' | 'createdAtBlockNumber' | 'totalShares' | 'operatorCount' | 'stakerCount' | 'avsCount';
 type SortDirection = 'asc' | 'desc';

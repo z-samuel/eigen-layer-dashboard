@@ -1,4 +1,24 @@
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: eigenlayer-postgres
+    environment:
+      - POSTGRES_DB=eigenlayer
+      - POSTGRES_USER=sam
+      - POSTGRES_PASSWORD=1qaz1qaz
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sam -d eigenlayer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - eigenlayer-network
+
   eigenlayer-dashboard:
     build:
       context: .
@@ -13,6 +33,8 @@ services:
       - NODE_ENV=production
       - PORT=4000
       - FRONTEND_PORT=3000
+      # Database configuration
+      - DB_URL=postgresql://sam:1qaz1qaz@postgres:5432/eigenlayer
       # Indexer environment variables (can be overridden)
       - ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL:-https://mainnet.infura.io/v3/17df8e330cb14b86b3a316d8b6355073}
       - EIGENPOD_MANAGER_ADDRESS=${EIGENPOD_MANAGER_ADDRESS:-0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338}
@@ -21,6 +43,9 @@ services:
       - MAX_RETRIES=${MAX_RETRIES:-10}
       - RETRY_DELAY_BASE=${RETRY_DELAY_BASE:-2}
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/graphql', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
@@ -29,6 +54,9 @@ services:
       start_period: 40s
     networks:
       - eigenlayer-network
+
+volumes:
+  postgres_data:
 
 networks:
   eigenlayer-network:

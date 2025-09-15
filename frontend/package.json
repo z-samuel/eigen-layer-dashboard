@@ -26,10 +26,10 @@
     "web-vitals": "^3.5.0"
   },
   "scripts": {
-    "start": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
-    "dev": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "DANGEROUSLY_DISABLE_HOST_CHECK=true craco start",
+    "dev": "DANGEROUSLY_DISABLE_HOST_CHECK=true craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx",
     "clean": "rimraf build"
@@ -53,6 +53,7 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "rimraf": "^5.0.5"
   },
   "proxy": "http://localhost:4000"

@@ -7,7 +7,7 @@ import {
   EigenPodResponse,
   EigenPodWhereInput,
   StrategyResponse
-} from '@eigen-layer-dashboard/lib';
+} from '@eigen-layer-dashboard/lib/frontend-types';
 
 const GRAPHQL_ENDPOINT = process.env.NODE_ENV === 'production' 
   ? 'http://localhost:4000/graphql' 

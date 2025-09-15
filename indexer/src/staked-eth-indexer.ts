@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { DatabaseService } from './database';
+import { IndexerDatabaseService } from './database';
 import { 
   StakedEthEvent, 
   getContractDeploymentBlock, 
@@ -18,7 +18,7 @@ const DEPOSIT_EVENT_ABI = [
 export class StakedEthIndexer {
   private provider: ethers.JsonRpcProvider;
   private contract: ethers.Contract;
-  private database: DatabaseService;
+  private database: IndexerDatabaseService;
   private isRunning: boolean = false;
   private maxRetries: number;
   private retryDelayBase: number;
@@ -32,7 +32,7 @@ export class StakedEthIndexer {
       DEPOSIT_EVENT_ABI,
       this.provider
     );
-    this.database = new DatabaseService();
+    this.database = IndexerDatabaseService.getInstance();
     this.maxRetries = maxRetries;
     this.retryDelayBase = retryDelayBase;
   }
@@ -149,17 +149,18 @@ export class StakedEthIndexer {
             const block = await this.getBlockWithRetry(event.blockNumber);
             const blockTimestamp = block.timestamp;
             
-            await this.database.insertStakedEthEvent(
+            await this.database.insertStakedEthEvent({
               pubkey,
               withdrawalCredentials,
-              txValue,
+              amount: txValue,
               signature,
               depositIndex,
-              event.blockNumber,
+              blockNumber: event.blockNumber,
               blockTimestamp,
-              event.transactionHash,
-              event.index
-            );
+              transactionHash: event.transactionHash,
+              logIndex: event.index,
+              createdAt: new Date(),
+            });
           }
         }
 
@@ -224,7 +225,8 @@ export class StakedEthIndexer {
   }
 
   async getStakedEthByBlock(blockNumber: number): Promise<any> {
-    return await this.database.getStakedEthByBlock(blockNumber);
+    const allBlocks = await this.database.getStakedEthByBlock();
+    return allBlocks.find(block => block.blockNumber === blockNumber);
   }
 
   async getStakedEthStats(): Promise<{ totalEvents: number; totalAmount: string; lastBlock: number; }> {

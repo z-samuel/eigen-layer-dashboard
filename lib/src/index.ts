@@ -1,8 +1,12 @@
 // Main export file for the shared library
 
 // Types
-export * from './types/database';
 export * from './types/graphql';
+
+// Database
+export * from './typeorm-database.service';
+export * from './typeorm.config';
+export * from './entities';
 
 // Utilities
 export * from './utils/formatters';

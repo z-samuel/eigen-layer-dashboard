@@ -1,2 +1,2 @@
 // Re-export formatters from shared library
-export * from '@eigen-layer-dashboard/lib';
+export * from '@eigen-layer-dashboard/lib/frontend-types';

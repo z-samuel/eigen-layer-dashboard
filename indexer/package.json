@@ -10,19 +10,28 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "ethers": "^6.8.1",
-    "sqlite3": "^5.1.6",
-    "node-cron": "^3.0.3",
+    "@eigen-layer-dashboard/lib": "1.0.0",
     "dotenv": "^16.3.1",
-    "@eigen-layer-dashboard/lib": "1.0.0"
+    "ethers": "^6.8.1",
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.3",
+    "reflect-metadata": "^0.2.2",
+    "sqlite3": "^5.1.6",
+    "typeorm": "^0.3.26"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
     "@types/node-cron": "^3.0.11",
-    "typescript": "^5.3.3",
-    "ts-node": "^10.9.2"
+    "@types/pg": "^8.10.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
-  "keywords": ["ethereum", "indexer", "eigenlayer", "events"],
+  "keywords": [
+    "ethereum",
+    "indexer",
+    "eigenlayer",
+    "events"
+  ],
   "author": "EigenLayer Dashboard Team",
   "license": "MIT"
 }

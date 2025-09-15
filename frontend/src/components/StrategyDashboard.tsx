@@ -14,7 +14,7 @@ import {
   Select,
   MenuItem
 } from '@mui/material';
-import { Strategy, StrategyResponse } from '@eigen-layer-dashboard/lib';
+import { Strategy, StrategyResponse } from '@eigen-layer-dashboard/lib/frontend-types';
 import { queryStrategies } from '../utils/graphql';
 import StrategyTable from './StrategyTable';
 

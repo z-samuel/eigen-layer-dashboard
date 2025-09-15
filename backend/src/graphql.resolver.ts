@@ -44,14 +44,14 @@ export class GraphQLResolver {
     // Handle different filtering scenarios based on where clause
     if (where?.ownerAddress) {
       const result = await this.eigenPodService.getEigenPodsByOwner(where.ownerAddress);
-      const pods = result.map(item => ({
-        id: 0, // Not available in response
+      const pods = result.map((item, index) => ({
+        id: index + 1,
         eigenPod: item.eigenPod,
         podOwner: item.podOwner,
-        blockNumber: item.blockNumber || 0,
-        transactionHash: '', // Not available in response
-        logIndex: 0, // Not available in response
-        createdAt: new Date().toISOString()
+        blockNumber: item.blockNumber,
+        transactionHash: item.transactionHash,
+        logIndex: item.logIndex,
+        createdAt: item.createdAt?.toISOString() || new Date().toISOString()
       }));
       return { pods, total: pods.length };
     }
@@ -59,51 +59,57 @@ export class GraphQLResolver {
     if (where?.eigenPodAddress) {
       const result = await this.eigenPodService.getEigenPodByAddress(where.eigenPodAddress);
       const pods = result ? [{
-        id: 0, // Not available in response
+        id: 1,
         eigenPod: result.eigenPod,
         podOwner: result.podOwner,
-        blockNumber: result.blockNumber || 0,
-        transactionHash: '', // Not available in response
-        logIndex: 0, // Not available in response
-        createdAt: new Date().toISOString()
+        blockNumber: result.blockNumber,
+        transactionHash: result.transactionHash,
+        logIndex: result.logIndex,
+        createdAt: result.createdAt?.toISOString() || new Date().toISOString()
       }] : [];
       return { pods, total: pods.length };
     }
     
     if (where?.validatorPublicKey) {
       const result = await this.eigenPodService.getEigenPodByValidatorPublicKey(where.validatorPublicKey);
-      const pods = result.map(item => ({
-        id: 0, // Not available in response
+      const pods = result.map((item, index) => ({
+        id: index + 1,
         eigenPod: item.eigenPod,
         podOwner: item.podOwner,
-        blockNumber: item.blockNumber || 0,
-        transactionHash: '', // Not available in response
-        logIndex: 0, // Not available in response
-        createdAt: new Date().toISOString()
+        blockNumber: item.blockNumber,
+        transactionHash: item.transactionHash,
+        logIndex: item.logIndex,
+        createdAt: item.createdAt?.toISOString() || new Date().toISOString()
       }));
       return { pods, total: pods.length };
     }
     
     if (where?.startBlock && where?.endBlock) {
       const result = await this.eigenPodService.getEigenPodsByBlockRange(where.startBlock, where.endBlock);
-      const pods = result.map(item => ({
-        id: item.id,
+      const pods = result.map((item, index) => ({
+        id: index + 1, // Use index as id since EigenPodResponse doesn't have id
         eigenPod: item.eigenPod,
         podOwner: item.podOwner,
         blockNumber: item.blockNumber,
         transactionHash: item.transactionHash,
         logIndex: item.logIndex,
-        createdAt: item.createdAt
+        createdAt: item.createdAt?.toISOString() || new Date().toISOString()
       }));
       return { pods, total: pods.length };
     }
     
     // Default: get all EigenPods with pagination
-    const result = await this.eigenPodService.getAllEigenPods(skip, limit);
-    return {
-      pods: result.eigenPods,
-      total: result.total
-    };
+    const result = await this.eigenPodService.getAllEigenPods(limit, skip);
+    const pods = result.map((item, index) => ({
+      id: index + 1,
+      eigenPod: item.eigenPod,
+      podOwner: item.podOwner,
+      blockNumber: item.blockNumber,
+      transactionHash: item.transactionHash,
+      logIndex: item.logIndex,
+      createdAt: item.createdAt?.toISOString() || new Date().toISOString()
+    }));
+    return { pods, total: pods.length };
   }
 
   @Query(() => EigenPodStatus)
@@ -121,35 +127,61 @@ export class GraphQLResolver {
     // Handle different filtering scenarios based on where clause
     if (where?.pubkey) {
       const events = await this.stakedEthService.getStakedEthEventsByPubkey(where.pubkey);
-      return { events, total: events.length };
+      const formattedEvents = events.map(event => ({
+        ...event,
+        createdAt: event.createdAt?.toISOString() || new Date().toISOString()
+      }));
+      return { events: formattedEvents, total: formattedEvents.length };
     }
     
     if (where?.withdrawalCredentials) {
       const events = await this.stakedEthService.getStakedEthEventsByWithdrawalCredentials(where.withdrawalCredentials);
-      return { events, total: events.length };
+      const formattedEvents = events.map(event => ({
+        ...event,
+        createdAt: event.createdAt?.toISOString() || new Date().toISOString()
+      }));
+      return { events: formattedEvents, total: formattedEvents.length };
     }
     
     if (where?.blockNumber) {
       const events = await this.stakedEthService.getStakedEthEventsByBlock(where.blockNumber);
-      return { events, total: events.length };
+      const formattedEvents = events.map(event => ({
+        ...event,
+        createdAt: event.createdAt?.toISOString() || new Date().toISOString()
+      }));
+      return { events: formattedEvents, total: formattedEvents.length };
     }
     
     if (where?.startBlock && where?.endBlock) {
       const events = await this.stakedEthService.getStakedEthEventsByBlockRange(where.startBlock, where.endBlock);
-      return { events, total: events.length };
+      const formattedEvents = events.map(event => ({
+        ...event,
+        createdAt: event.createdAt?.toISOString() || new Date().toISOString()
+      }));
+      return { events: formattedEvents, total: formattedEvents.length };
     }
     
     // Default: get all staked ETH events with pagination
-    const result = await this.stakedEthService.getAllStakedEthEvents(skip, limit);
-    return {
-      events: result.events,
-      total: result.total
-    };
+    const events = await this.stakedEthService.getAllStakedEthEvents(skip, limit);
+    const formattedEvents = events.map(event => ({
+      ...event,
+      createdAt: event.createdAt?.toISOString() || new Date().toISOString()
+    }));
+    return { events: formattedEvents, total: formattedEvents.length };
   }
 
   @Query(() => StakedEthStats)
   async stakedEthStats(): Promise<StakedEthStats> {
-    return await this.stakedEthService.getStakedEthStats();
+    const stats = await this.stakedEthService.getStakedEthStats();
+    // Get the last block from the events
+    const events = await this.stakedEthService.getStakedEthEvents(1, 0);
+    const lastBlock = events.length > 0 ? events[0].blockNumber : 0;
+    
+    return {
+      totalEvents: stats.totalEvents,
+      totalAmount: stats.totalStaked,
+      lastBlock: lastBlock
+    };
   }
 
   // Staking analytics - now using materialized view for better performance
@@ -160,13 +192,20 @@ export class GraphQLResolver {
     try {
       // Single block analytics - use materialized view
       if (input.blockNumber) {
-        const result = await this.materializedViewService.getStakedEthAnalyticsByBlock(input.blockNumber);
-        return result ? [result] : [];
+        const result = await this.stakedEthService.getStakedEthEventsByBlock(input.blockNumber);
+        // Convert to StakedEthByBlock format
+        const blockData = {
+          blockNumber: input.blockNumber,
+          blockTimestamp: result[0]?.blockTimestamp || 0,
+          totalDeposited: result.reduce((sum, event) => (BigInt(sum) + BigInt(event.amount)).toString(), '0'),
+          eventCount: result.length
+        };
+        return [blockData];
       }
       
       // Block range analytics - use materialized view
       if (input.startBlock && input.endBlock) {
-        const results = await this.materializedViewService.getStakedEthAnalyticsByBlockRange(
+        const results = await this.stakedEthService.getStakedEthSummaryByBlockRange(
           input.startBlock, 
           input.endBlock
         );
@@ -179,8 +218,14 @@ export class GraphQLResolver {
       console.error('Error in stakedEthAnalytics:', error);
       // Fallback to original service if materialized view fails
       if (input.blockNumber) {
-        const result = await this.stakedEthService.getStakedEthByBlock(input.blockNumber);
-        return result ? [result] : [];
+        const events = await this.stakedEthService.getStakedEthEventsByBlock(input.blockNumber);
+        const blockData = {
+          blockNumber: input.blockNumber,
+          blockTimestamp: events[0]?.blockTimestamp || 0,
+          totalDeposited: events.reduce((sum, event) => (BigInt(sum) + BigInt(event.amount)).toString(), '0'),
+          eventCount: events.length
+        };
+        return [blockData];
       }
       
       if (input.startBlock && input.endBlock) {

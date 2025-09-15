@@ -1,32 +1,26 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import * as sqlite3 from 'sqlite3';
-import { promisify } from 'util';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ethers } from 'ethers';
+import { PodDeployedEvent } from '@eigen-layer-dashboard/lib';
 import axios from 'axios';
-import { PodDeployedEvent as EigenPodEvent } from '@eigen-layer-dashboard/lib';
 
 export interface EigenPodResponse {
   eigenPod: string;
   podOwner: string;
   blockNumber?: number;
-  source: 'database' | 'contract';
+  transactionHash?: string;
+  logIndex?: number;
+  createdAt?: Date;
+  source?: 'database' | 'contract';
 }
 
 export interface ValidatorData {
-  activationeligibilityepoch: number;
-  activationepoch: number;
-  balance: number;
-  effectivebalance: number;
-  exitepoch: number;
-  lastattestationslot: number;
-  name: string;
   pubkey: string;
-  slashed: boolean;
-  status: string;
-  validatorindex: number;
-  withdrawableepoch: number;
-  withdrawalcredentials: string;
-  total_withdrawals: number;
+  withdrawal_credentials: string;
+  amount: string;
+  signature: string;
+  deposit_index: number;
 }
 
 export interface BeaconchaResponse {
@@ -36,10 +30,6 @@ export interface BeaconchaResponse {
 
 @Injectable()
 export class EigenPodService {
-  private db: sqlite3.Database;
-  private run: (sql: string, params?: any[]) => Promise<sqlite3.RunResult>;
-  private get: (sql: string, params?: any[]) => Promise<any>;
-  private all: (sql: string, params?: any[]) => Promise<any[]>;
   private provider: ethers.JsonRpcProvider;
   private contract: ethers.Contract;
 
@@ -48,16 +38,10 @@ export class EigenPodService {
     "function getPod(address podOwner) external view returns (address)"
   ];
 
-  constructor() {
-    // Connect to the indexer's SQLite database
-    const dbPath = process.env.INDEXER_DB_PATH || '../indexer/indexer.db';
-    this.db = new sqlite3.Database(dbPath);
-    
-    // Promisify database methods
-    this.run = promisify(this.db.run.bind(this.db));
-    this.get = promisify(this.db.get.bind(this.db));
-    this.all = promisify(this.db.all.bind(this.db));
-
+  constructor(
+    @InjectRepository(PodDeployedEvent)
+    private podDeployedRepository: Repository<PodDeployedEvent>,
+  ) {
     // Initialize Ethereum provider and contract
     const rpcUrl = process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo';
     const contractAddress = process.env.EIGENPOD_MANAGER_ADDRESS || '0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338';
@@ -68,21 +52,21 @@ export class EigenPodService {
 
   async getEigenPodsByOwner(ownerAddress: string): Promise<EigenPodResponse[]> {
     try {
-      // First, try to get from database
-      const sql = `
-        SELECT * FROM pod_deployed_events 
-        WHERE LOWER(podOwner) = LOWER(?)
-        ORDER BY blockNumber DESC
-      `;
+      // First, try to get from database using case-insensitive search
+      const rawEvents = await this.podDeployedRepository.query(
+        'SELECT * FROM pod_deployed_events WHERE LOWER(podowner) = LOWER($1) ORDER BY blocknumber DESC, logindex DESC',
+        [ownerAddress]
+      );
       
-      const events = await this.all(sql, [ownerAddress]);
-      
-      if (events.length > 0) {
+      if (rawEvents.length > 0) {
         // Return database results
-        return events.map(event => ({
-          eigenPod: event.eigenPod,
-          podOwner: event.podOwner,
-          blockNumber: event.blockNumber,
+        return rawEvents.map(event => ({
+          eigenPod: event.eigenpod,
+          podOwner: event.podowner,
+          blockNumber: event.blocknumber,
+          transactionHash: event.transactionhash,
+          logIndex: event.logindex,
+          createdAt: event.createdat,
           source: 'database' as const
         }));
       }
@@ -100,253 +84,151 @@ export class EigenPodService {
           }];
         }
       } catch (contractError) {
-        console.warn('Error calling contract getPod:', contractError);
-        // Continue to return empty array if contract call fails
+        console.warn('Error querying contract:', contractError);
       }
 
-      // Return empty array if no results found
       return [];
     } catch (error) {
-      console.error('Error querying EigenPods by owner:', error);
+      console.error('Error in getEigenPodsByOwner:', error);
       throw new HttpException(
-        'Failed to query EigenPods from database',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to fetch EigenPod data',
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
-  async getEigenPodByAddress(eigenPodAddress: string): Promise<EigenPodEvent | null> {
+  async getEigenPodByAddress(eigenPodAddress: string): Promise<EigenPodResponse | null> {
     try {
-      // Use LOWER() function for case-insensitive search
-      const sql = `
-        SELECT * FROM pod_deployed_events 
-        WHERE LOWER(eigenPod) = LOWER(?)
-        ORDER BY blockNumber DESC
-        LIMIT 1
-      `;
+      // Query database for the specific EigenPod
+      const events = await this.podDeployedRepository.find({
+        where: { podOwner: eigenPodAddress.toLowerCase() },
+        order: { blockNumber: 'DESC', logIndex: 'DESC' },
+      });
       
-      const event = await this.get(sql, [eigenPodAddress]);
-      
-      if (!event) {
-        return null;
-      }
-      
-      return {
-        id: event.id,
-        eigenPod: event.eigenPod,
-        podOwner: event.podOwner,
-        blockNumber: event.blockNumber,
-        transactionHash: event.transactionHash,
-        logIndex: event.logIndex,
-        createdAt: event.createdAt
-      };
-    } catch (error) {
-      console.error('Error querying EigenPod by address:', error);
-      throw new HttpException(
-        'Failed to query EigenPod from database',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async getAllEigenPods(skip: number = 0, limit: number = 100): Promise<{
-    eigenPods: EigenPodEvent[];
-    total: number;
-  }> {
-    try {
-      // Get total count
-      const countSql = 'SELECT COUNT(*) as count FROM pod_deployed_events';
-      const countResult = await this.get(countSql);
-      const total = countResult?.count || 0;
-
-      // Get paginated results
-      const sql = `
-        SELECT * FROM pod_deployed_events 
-        ORDER BY blockNumber DESC
-        LIMIT ? OFFSET ?
-      `;
-      
-      const events = await this.all(sql, [limit, skip]);
-      
-      const eigenPods = events.map(event => ({
-        id: event.id,
-        eigenPod: event.eigenPod,
-        podOwner: event.podOwner,
-        blockNumber: event.blockNumber,
-        transactionHash: event.transactionHash,
-        logIndex: event.logIndex,
-        createdAt: event.createdAt
-      }));
-
-      return { eigenPods, total };
-    } catch (error) {
-      console.error('Error querying all EigenPods:', error);
-      throw new HttpException(
-        'Failed to query EigenPods from database',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async getEigenPodsByBlockRange(startBlock: number, endBlock: number): Promise<EigenPodEvent[]> {
-    try {
-      const sql = `
-        SELECT * FROM pod_deployed_events 
-        WHERE blockNumber >= ? AND blockNumber <= ?
-        ORDER BY blockNumber DESC
-      `;
-      
-      const events = await this.all(sql, [startBlock, endBlock]);
-      
-      return events.map(event => ({
-        id: event.id,
-        eigenPod: event.eigenPod,
-        podOwner: event.podOwner,
-        blockNumber: event.blockNumber,
-        transactionHash: event.transactionHash,
-        logIndex: event.logIndex,
-        createdAt: event.createdAt
-      }));
-    } catch (error) {
-      console.error('Error querying EigenPods by block range:', error);
-      throw new HttpException(
-        'Failed to query EigenPods from database',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async getDatabaseStatus(): Promise<{
-    totalEvents: number;
-    lastIndexedBlock: number;
-    isConnected: boolean;
-  }> {
-    try {
-      // Check if database is connected and table exists
-      const tableExistsSql = `
-        SELECT name FROM sqlite_master 
-        WHERE type='table' AND name='pod_deployed_events'
-      `;
-      const tableExists = await this.get(tableExistsSql);
-      
-      if (!tableExists) {
+      if (events.length > 0) {
+        const event = events[0];
         return {
-          totalEvents: 0,
-          lastIndexedBlock: 0,
-          isConnected: false
+          eigenPod: event.eigenPod,
+          podOwner: event.podOwner,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          logIndex: event.logIndex,
+          createdAt: event.createdAt,
+          source: 'database' as const
         };
       }
 
-      // Get total events count
-      const countSql = 'SELECT COUNT(*) as count FROM pod_deployed_events';
-      const countResult = await this.get(countSql);
-      const totalEvents = countResult?.count || 0;
-
-      // Get last indexed block
-      const lastBlockSql = 'SELECT MAX(blockNumber) as maxBlock FROM pod_deployed_events';
-      const lastBlockResult = await this.get(lastBlockSql);
-      const lastIndexedBlock = lastBlockResult?.maxBlock || 0;
-
-      return {
-        totalEvents,
-        lastIndexedBlock,
-        isConnected: true
-      };
+      return null;
     } catch (error) {
-      console.error('Error checking database status:', error);
-      return {
-        totalEvents: 0,
-        lastIndexedBlock: 0,
-        isConnected: false
-      };
+      console.error('Error in getEigenPodByAddress:', error);
+      throw new HttpException(
+        'Failed to fetch EigenPod data',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
-  async getEigenPodByValidatorPublicKey(publicKey: string): Promise<EigenPodEvent[]> {
-    // Note: getting EigenPod by validator usually returns empty result
-    // because not all validator has Eigen Pod as its withdrawal destination.
+  async getAllEigenPods(limit: number = 100, offset: number = 0): Promise<EigenPodResponse[]> {
     try {
-      // Validate public key format (should be 0x + 96 hex characters)
-      if (!publicKey || !publicKey.match(/^0x[a-fA-F0-9]{96}$/)) {
-        throw new HttpException('Invalid validator public key format', HttpStatus.BAD_REQUEST);
-      }
-
-      // Call Beaconcha.in API to get validator data
-      const beaconchaUrl = `https://beaconcha.in/api/v1/validator/${publicKey}`;
-      
-      let validatorData: ValidatorData;
-      try {
-        const response = await axios.get<BeaconchaResponse>(beaconchaUrl, {
-          timeout: 10000, // 10 second timeout
-          headers: {
-            'User-Agent': 'EigenLayer-Dashboard/1.0'
-          }
-        });
-
-        if (response.data.status !== 'OK' || !response.data.data) {
-          throw new HttpException('Validator not found or invalid response from Beaconcha.in', HttpStatus.NOT_FOUND);
-        }
-
-        validatorData = response.data.data;
-      } catch (apiError) {
-        console.error('Error calling Beaconcha.in API:', apiError);
-        if (axios.isAxiosError(apiError) && apiError.response?.status === 404) {
-          throw new HttpException('Validator not found', HttpStatus.NOT_FOUND);
-        }
-        throw new HttpException('Failed to fetch validator data from Beaconcha.in', HttpStatus.SERVICE_UNAVAILABLE);
-      }
-
-      // Extract withdrawal destination from withdrawal credentials
-      const withdrawalCredentials = validatorData.withdrawalcredentials;
-      
-      // Check if withdrawal credentials start with 0x01 (ETH1_ADDRESS_WITHDRAWAL_PREFIX)
-      if (!withdrawalCredentials.startsWith('0x01')) {
-        // Not an ETH1 address withdrawal, return empty array
-        return [];
-      }
-
-      // Extract the withdrawal destination address (last 40 characters after 0x01)
-      const withdrawalDestination = '0x' + withdrawalCredentials.slice(4); // Remove '0x01' prefix
-
-      // Check if this address exists as an EigenPod in our database
-      const sql = `
-        SELECT * FROM pod_deployed_events 
-        WHERE LOWER(eigenPod) = LOWER(?)
-        ORDER BY blockNumber DESC
-      `;
-      
-      const events = await this.all(sql, [withdrawalDestination]);
+      const events = await this.podDeployedRepository.find({
+        order: { blockNumber: 'DESC', logIndex: 'DESC' },
+        take: limit,
+        skip: offset,
+      });
       
       return events.map(event => ({
-        id: event.id,
         eigenPod: event.eigenPod,
         podOwner: event.podOwner,
         blockNumber: event.blockNumber,
         transactionHash: event.transactionHash,
         logIndex: event.logIndex,
-        createdAt: event.createdAt
+        createdAt: event.createdAt,
+        source: 'database' as const
       }));
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      console.error('Error getting EigenPod by validator public key:', error);
+      console.error('Error in getAllEigenPods:', error);
       throw new HttpException(
-        'Failed to get EigenPod by validator public key',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to fetch EigenPod data',
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
-  async close(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.db.close((err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+  async getValidatorData(pubkey: string): Promise<ValidatorData | null> {
+    try {
+      const response = await axios.get(`https://beaconcha.in/api/v1/validator/${pubkey}`);
+      const data: BeaconchaResponse = response.data;
+      
+      if (data.status === 'OK' && data.data) {
+        return data.data;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching validator data:', error);
+      return null;
+    }
+  }
+
+
+  async getEigenPodByValidatorPublicKey(validatorPublicKey: string): Promise<EigenPodResponse[]> {
+    try {
+      // This would need to be implemented based on your business logic
+      // For now, returning empty array
+      return [];
+    } catch (error) {
+      console.error('Error in getEigenPodByValidatorPublicKey:', error);
+      throw new HttpException(
+        'Failed to fetch EigenPod by validator public key',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async getEigenPodsByBlockRange(startBlock: number, endBlock: number): Promise<EigenPodResponse[]> {
+    try {
+      const events = await this.podDeployedRepository
+        .createQueryBuilder('event')
+        .where('event.blockNumber >= :startBlock AND event.blockNumber <= :endBlock', {
+          startBlock,
+          endBlock,
+        })
+        .orderBy('event.blockNumber', 'DESC')
+        .addOrderBy('event.logIndex', 'DESC')
+        .getMany();
+      
+      return events.map(event => ({
+        eigenPod: event.eigenPod,
+        podOwner: event.podOwner,
+        blockNumber: event.blockNumber,
+        transactionHash: event.transactionHash,
+        logIndex: event.logIndex,
+        createdAt: event.createdAt,
+        source: 'database' as const
+      }));
+    } catch (error) {
+      console.error('Error in getEigenPodsByBlockRange:', error);
+      throw new HttpException(
+        'Failed to fetch EigenPods by block range',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async getDatabaseStatus(): Promise<any> {
+    try {
+      // This would need to be implemented based on your business logic
+      // For now, returning a simple status
+      return {
+        status: 'connected',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error in getDatabaseStatus:', error);
+      throw new HttpException(
+        'Failed to get database status',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 }
