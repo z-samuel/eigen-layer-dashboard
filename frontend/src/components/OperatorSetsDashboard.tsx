@@ -64,12 +64,23 @@ const OperatorSetsDashboard: React.FC = () => {
     
     try {
       const result = await queryOperatorSets(skip, limit);
-      setOperatorSets(result.operatorSets || []);
+      const operatorSetsData = result.operatorSets || [];
+      setOperatorSets(operatorSetsData);
       
       // Calculate pagination info
-      const total = result.operatorSets?.length || 0;
-      setTotalCount(total);
-      setTotalPages(Math.ceil(total / limit));
+      // If we got less data than the limit, we're on the last page
+      const hasMoreData = operatorSetsData.length === limit;
+      const currentTotal = skip + operatorSetsData.length;
+      
+      if (hasMoreData) {
+        // Estimate total count (this is approximate since subgraph doesn't provide exact count)
+        setTotalCount(currentTotal + 1); // Add 1 to indicate there might be more
+        setTotalPages(Math.ceil((currentTotal + 1) / limit));
+      } else {
+        // We're on the last page
+        setTotalCount(currentTotal);
+        setTotalPages(Math.ceil(currentTotal / limit));
+      }
     } catch (err: any) {
       console.error('Error fetching operator sets:', err);
       setError(err.message);

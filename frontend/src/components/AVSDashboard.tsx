@@ -63,12 +63,23 @@ const AVSDashboard: React.FC = () => {
     
     try {
       const result = await queryAVSs(skip, limit);
-      setAvss(result.avss || []);
+      const avssData = result.avss || [];
+      setAvss(avssData);
       
       // Calculate pagination info
-      const total = result.avss?.length || 0;
-      setTotalCount(total);
-      setTotalPages(Math.ceil(total / limit));
+      // If we got less data than the limit, we're on the last page
+      const hasMoreData = avssData.length === limit;
+      const currentTotal = skip + avssData.length;
+      
+      if (hasMoreData) {
+        // Estimate total count (this is approximate since subgraph doesn't provide exact count)
+        setTotalCount(currentTotal + 1); // Add 1 to indicate there might be more
+        setTotalPages(Math.ceil((currentTotal + 1) / limit));
+      } else {
+        // We're on the last page
+        setTotalCount(currentTotal);
+        setTotalPages(Math.ceil(currentTotal / limit));
+      }
     } catch (err: any) {
       console.error('Error fetching AVSs:', err);
       setError(err.message);
