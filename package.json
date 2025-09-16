@@ -24,7 +24,11 @@
     "indexer:dev": "yarn workspace @eigen-layer/indexer dev",
     "indexer:start": "yarn workspace @eigen-layer/indexer start",
     "backend:lint": "yarn workspace @eigen-layer/backend lint",
-    "frontend:lint": "yarn workspace @eigen-layer/frontend lint"
+    "frontend:lint": "yarn workspace @eigen-layer/frontend lint",
+    "migrate:postgres": "ts-node migrate-sqlite-to-postgres.ts",
+    "migrate:postgres:lib": "yarn workspace @eigen-layer-dashboard/lib migrate:run",
+    "db:setup": "yarn migrate:postgres",
+    "db:migrate": "yarn migrate:postgres"
   },
   "devDependencies": {
     "@types/pg": "^8.10.9",

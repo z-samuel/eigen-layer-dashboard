@@ -71,8 +71,8 @@ yarn install
 # Build the shared library
 yarn lib:build
 
-# Run TypeORM migrations
-yarn lib:migrate:run
+# Run data migration from SQLite to PostgreSQL
+yarn migrate:postgres
 ```
 
 3. Build
@@ -117,10 +117,11 @@ yarn indexer:dev
 - `yarn backend:lint` - Lint backend code
 - `yarn frontend:lint` - Lint frontend code
 
-### TypeORM Migration Scripts
-- `yarn workspace @eigen-layer-dashboard/lib migrate:run` - Run TypeORM migrations (uses built-in TypeORM CLI)
-- `yarn workspace @eigen-layer-dashboard/lib migrate:generate` - Generate new TypeORM migration
-- `yarn workspace @eigen-layer-dashboard/lib migrate:create` - Create new TypeORM migration file
+### Database Migration Scripts
+- `yarn migrate:postgres` - Migrate data from SQLite to PostgreSQL (main migration command)
+- `yarn db:setup` - Alias for migrate:postgres
+- `yarn db:migrate` - Alias for migrate:postgres
+- `yarn workspace @eigen-layer-dashboard/lib migrate:run` - Run TypeORM schema migrations (for development)
 
 ### Shared Library Scripts (`lib/`)
 - `yarn lib:build` - Build shared library for production
@@ -617,8 +618,7 @@ The migration includes:
 
 ```bash
 # Migration commands
-yarn migrate:postgres      # Run TypeScript migration script (from lib/scripts/)
-yarn migrate:postgres:lib  # Run migration via lib workspace
+yarn migrate:postgres      # Run data migration from SQLite to PostgreSQL
 yarn db:setup             # Alias for migrate:postgres
 yarn db:migrate           # Alias for migrate:postgres
 ```
@@ -799,7 +799,7 @@ yarn workspace @eigen-layer-dashboard/lib migrate:run
 cd lib && yarn migrate:run
 
 # Generate new migration based on entity changes
-yarn workspace @eigen-layer-dashboard/lib migrate:generate src/migrations/NewMigration
+yarn workspace @eigen-layer-dashboard/lib migrate:generate src/migrations/NewMigration -d src/typeorm.config.ts
 
 # Create empty migration file
 yarn workspace @eigen-layer-dashboard/lib migrate:create src/migrations/NewMigration
@@ -826,7 +826,7 @@ When you modify entities, generate a new migration:
 
 ```bash
 # Generate migration based on entity changes
-yarn workspace @eigen-layer-dashboard/lib migrate:generate src/migrations/AddNewField
+yarn workspace @eigen-layer-dashboard/lib migrate:generate src/migrations/AddNewField -d src/typeorm.config.ts
 
 # Or create an empty migration for custom SQL
 yarn workspace @eigen-layer-dashboard/lib migrate:create src/migrations/CustomMigration
@@ -837,9 +837,6 @@ yarn workspace @eigen-layer-dashboard/lib migrate:create src/migrations/CustomMi
 ```bash
 # Run all pending migrations
 yarn workspace @eigen-layer-dashboard/lib migrate:run
-
-# Check migration status (if supported by your database)
-yarn workspace @eigen-layer-dashboard/lib migrate:show
 ```
 
 ### TypeORM Configuration
@@ -860,10 +857,7 @@ Entities are defined in `lib/src/entities/`:
 
 ```bash
 # Check TypeORM connection
-yarn workspace @eigen-layer-dashboard/lib migrate:run --verbose
-
-# Reset migrations (⚠️ DANGER: This will drop all data)
-yarn workspace @eigen-layer-dashboard/lib migrate:revert
+yarn workspace @eigen-layer-dashboard/lib migrate:run
 
 # Check entity synchronization
 yarn lib:build && yarn backend:dev

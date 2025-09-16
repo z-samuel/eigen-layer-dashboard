@@ -64,6 +64,75 @@ INDEXER_PID=$!
 # Wait a bit for indexer to initialize
 sleep 5
 
+# Initialize database tables if they don't exist
+echo "🔧 Initializing database tables..."
+cd /app
+node -e "
+const { DataSource } = require('typeorm');
+const postgresDataSource = new DataSource({
+  type: 'postgres',
+  url: process.env.DB_URL || 'postgresql://sam:1qaz1qaz@postgres:5432/eigenlayer',
+  entities: [],
+  synchronize: false,
+  logging: false
+});
+
+async function ensureTablesExist() {
+  try {
+    await postgresDataSource.initialize();
+    console.log('📡 Connected to PostgreSQL');
+    
+    // Create tables if they don't exist
+    await postgresDataSource.query(\`
+      CREATE TABLE IF NOT EXISTS \"pod_deployed_events\" (
+        \"id\" SERIAL PRIMARY KEY,
+        \"eigenpod\" VARCHAR NOT NULL,
+        \"podowner\" VARCHAR NOT NULL,
+        \"blocknumber\" INTEGER NOT NULL,
+        \"transactionhash\" VARCHAR NOT NULL,
+        \"logindex\" INTEGER NOT NULL,
+        \"createdat\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(\"transactionhash\", \"logindex\")
+      )
+    \`);
+    console.log('✅ Created pod_deployed_events table');
+    
+    await postgresDataSource.query(\`
+      CREATE TABLE IF NOT EXISTS \"staked_eth_events\" (
+        \"id\" SERIAL PRIMARY KEY,
+        \"pubkey\" VARCHAR NOT NULL,
+        \"withdrawalcredentials\" VARCHAR NOT NULL,
+        \"amount\" VARCHAR NOT NULL,
+        \"signature\" VARCHAR NOT NULL,
+        \"depositindex\" VARCHAR NOT NULL,
+        \"blocknumber\" INTEGER NOT NULL,
+        \"blocktimestamp\" INTEGER NOT NULL,
+        \"transactionhash\" VARCHAR NOT NULL,
+        \"logindex\" INTEGER NOT NULL,
+        \"createdat\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(\"transactionhash\", \"logindex\")
+      )
+    \`);
+    console.log('✅ Created staked_eth_events table');
+    
+    // Create indexes
+    await postgresDataSource.query(\`CREATE INDEX IF NOT EXISTS \"IDX_pod_deployed_events_blocknumber\" ON \"pod_deployed_events\" (\"blocknumber\")\`);
+    await postgresDataSource.query(\`CREATE INDEX IF NOT EXISTS \"IDX_pod_deployed_events_podowner\" ON \"pod_deployed_events\" (\"podowner\")\`);
+    await postgresDataSource.query(\`CREATE INDEX IF NOT EXISTS \"IDX_staked_eth_events_blocknumber\" ON \"staked_eth_events\" (\"blocknumber\")\`);
+    await postgresDataSource.query(\`CREATE INDEX IF NOT EXISTS \"IDX_staked_eth_events_pubkey\" ON \"staked_eth_events\" (\"pubkey\")\`);
+    console.log('✅ Created database indexes');
+    
+    await postgresDataSource.destroy();
+    console.log('✅ Database initialization complete');
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error.message);
+    process.exit(1);
+  }
+}
+
+ensureTablesExist();
+"
+
 # Start Backend
 echo "🔧 Starting Backend..."
 cd /app/backend
