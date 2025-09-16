@@ -16,7 +16,7 @@ import {
   TextField,
   Button
 } from '@mui/material';
-import { EigenPod, EigenPodResponse, EigenPodWhereInput } from '@eigen-layer-dashboard/lib';
+import { EigenPod, EigenPodResponse, EigenPodWhereInput } from '@eigen-layer-dashboard/lib/frontend-types';
 import { queryEigenPods } from '../utils/graphql';
 import EigenPodTable from './EigenPodTable';
 

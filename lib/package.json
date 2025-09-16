@@ -5,16 +5,35 @@
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./frontend-types": {
+      "types": "./dist/frontend-types.d.ts",
+      "default": "./dist/frontend-types.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "migrate:run": "typeorm migration:run -d dist/typeorm.config.js",
+    "migrate:generate": "typeorm-ts-node-commonjs migration:generate",
+    "migrate:create": "typeorm-ts-node-commonjs migration:create"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.2",
+    "sqlite3": "^5.1.6",
+    "pg": "^8.11.3",
+    "@types/pg": "^8.10.9"
   },
   "dependencies": {
-    "ethers": "^6.15.0"
+    "ethers": "^6.15.0",
+    "typeorm": "^0.3.20",
+    "reflect-metadata": "^0.2.1"
   },
   "files": [
     "dist/**/*"

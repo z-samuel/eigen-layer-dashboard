@@ -16,7 +16,7 @@ import {
   Alert
 } from '@mui/material';
 import { GraphQLClient } from './utils/graphql';
-import { HealthStatus } from '@eigen-layer-dashboard/lib';
+import { HealthStatus } from '@eigen-layer-dashboard/lib/frontend-types';
 import StakedEthDashboard from './components/StakedEthDashboard';
 import EigenPodDashboard from './components/EigenPodDashboard';
 import StrategyDashboard from './components/StrategyDashboard';

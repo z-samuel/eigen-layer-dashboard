@@ -19,7 +19,7 @@ import {
   Link
 } from '@mui/material';
 import { Visibility, VisibilityOff, OpenInNew } from '@mui/icons-material';
-import { EigenPod } from '@eigen-layer-dashboard/lib';
+import { EigenPod } from '@eigen-layer-dashboard/lib/frontend-types';
 
 interface EigenPodTableProps {
   data: EigenPod[];

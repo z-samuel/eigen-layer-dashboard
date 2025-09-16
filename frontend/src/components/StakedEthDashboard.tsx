@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import { GraphQLClient } from '../utils/graphql';
-import { StakedEthAnalytics, StakedEthAnalyticsInput, StakedEthStats } from '@eigen-layer-dashboard/lib';
+import { StakedEthAnalytics, StakedEthAnalyticsInput, StakedEthStats } from '@eigen-layer-dashboard/lib/frontend-types';
 import AnalyticsTable from './AnalyticsTable';
 
 const StakedEthDashboard: React.FC = () => {

@@ -18,7 +18,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { StakedEthAnalytics } from '@eigen-layer-dashboard/lib';
+import { StakedEthAnalytics } from '@eigen-layer-dashboard/lib/frontend-types';
 import { formatTimestamp, formatBlockNumber, formatEventCount, formatEthAmount } from '../utils/formatters';
 
 interface AnalyticsTableProps {

@@ -13,6 +13,11 @@ eigen-layer-dashboard/
 ├── indexer/              # Event indexer
 ├── lib/                  # Shared types and utilities
 │   ├── src/
+│   │   ├── entities/     # TypeORM database entities
+│   │   │   ├── PodDeployedEvent.entity.ts
+│   │   │   └── StakedEthEvent.entity.ts
+│   │   ├── migrations/   # TypeORM database migrations
+│   │   │   └── 001-create-tables.ts
 │   │   ├── types/        # Shared TypeScript interfaces
 │   │   ├── utils/        # Shared utility functions
 │   │   └── index.ts      # Main export file
@@ -61,12 +66,21 @@ For detailed Docker instructions, see [DOCKER.md](./DOCKER.md).
 yarn install
 ```
 
-2. Build
+2. Set up the database (TypeORM):
+```bash
+# Build the shared library
+yarn lib:build
+
+# Run data migration from SQLite to PostgreSQL
+yarn migrate:postgres
+```
+
+3. Build
 ```bash
 yarn build
 ```
 
-3. Start both frontend and backend in development mode:
+4. Start both frontend and backend in development mode:
 ```bash
 yarn dev
 ```
@@ -102,6 +116,12 @@ yarn indexer:dev
 - `yarn clean` - Clean build artifacts for all projects
 - `yarn backend:lint` - Lint backend code
 - `yarn frontend:lint` - Lint frontend code
+
+### Database Migration Scripts
+- `yarn migrate:postgres` - Migrate data from SQLite to PostgreSQL (main migration command)
+- `yarn db:setup` - Alias for migrate:postgres
+- `yarn db:migrate` - Alias for migrate:postgres
+- `yarn workspace @eigen-layer-dashboard/lib migrate:run` - Run TypeORM schema migrations (for development)
 
 ### Shared Library Scripts (`lib/`)
 - `yarn lib:build` - Build shared library for production
@@ -459,6 +479,8 @@ The indexer system monitors both EigenPod deployments and Ethereum 2.0 staking e
 - **Complete History**: Backfills from contract deployment (block 11052984)
 
 ### **Core Features**
+- **TypeORM Integration**: Modern database ORM with type safety and migrations
+- **Multi-Database Support**: Works with SQLite, PostgreSQL, MySQL, and more
 - **SQLite storage**: Stores events with proper indexing for efficient querying
 - **Scheduled execution**: Runs periodically using cron expressions
 - **Retry logic**: Robust error handling with exponential backoff for rate limits
@@ -492,7 +514,15 @@ The GraphQL subgraph provides comprehensive data access with intelligent fallbac
 - **Single Endpoint**: All data accessible through one GraphQL endpoint
 - **Interactive Playground**: Built-in query testing and exploration interface
 
-### Indexer Data Schema
+### Database Schema
+
+The EigenLayer Dashboard uses TypeORM entities for database management. The schema is automatically managed through TypeORM migrations.
+
+**TypeORM Entities:**
+- `PodDeployedEvent` - Maps to `pod_deployed_events` table
+- `StakedEthEvent` - Maps to `staked_eth_events` table
+
+**Legacy Schema (for reference):**
 
 **EigenPod Events:**
 ```sql
@@ -561,6 +591,288 @@ DATABASE_PATH=./indexer.db
 # Optional: Retry configuration for rate limiting
 MAX_RETRIES=10
 RETRY_DELAY_BASE=2
+```
+
+## 🗄️ Legacy Database Migration (Deprecated)
+
+> ⚠️ **This section is deprecated**. The EigenLayer Dashboard now uses TypeORM for database management. Please use the [TypeORM Database Migrations](#-typeorm-database-migrations) section instead.
+
+The legacy migration system has been replaced with TypeORM. This section is kept for reference only.
+
+### Overview
+
+The migration includes:
+- ✅ Database abstraction layer supporting both SQLite and PostgreSQL
+- ✅ Updated backend services to use the new database interface
+- ✅ Updated indexer to use the new database interface
+- ✅ TypeScript migration script to transfer existing data
+- ✅ Updated Docker configuration with PostgreSQL support
+
+### Prerequisites
+
+1. **PostgreSQL Server**: Ensure PostgreSQL is running and accessible
+2. **Database Access**: Create a database and user with appropriate permissions
+3. **Existing Data**: Have your SQLite database file available for migration
+
+### Migration Commands
+
+```bash
+# Migration commands
+yarn migrate:postgres      # Run data migration from SQLite to PostgreSQL
+yarn db:setup             # Alias for migrate:postgres
+yarn db:migrate           # Alias for migrate:postgres
+```
+
+### Migration Steps
+
+#### 1. Install Dependencies
+
+```bash
+# Install all dependencies (including PostgreSQL)
+yarn install
+```
+
+#### 2. Configure Environment
+
+Update your `.env` file with PostgreSQL connection details:
+
+```bash
+# Database Configuration
+DB_URL=postgresql://sam:1qaz1qaz@localhost:5432/eigenlayer
+
+# Other existing configuration...
+ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/demo
+EIGENPOD_MANAGER_ADDRESS=0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338
+STAKED_ETH_CONTRACT_ADDRESS=0x00000000219ab540356cbb839cbe05303d7705fa
+```
+
+#### 3. Run Migration Script
+
+```bash
+# Run TypeScript migration script
+yarn migrate:postgres
+
+# Or use the shorter alias
+yarn db:migrate
+```
+
+The migration script will:
+- ✅ Verify SQLite and PostgreSQL connections
+- ✅ Create PostgreSQL tables and indexes
+- ✅ Create materialized view for analytics
+- ✅ Transfer all data from SQLite to PostgreSQL (idempotent)
+- ✅ Refresh materialized view with migrated data
+- ✅ Verify data integrity
+
+**Idempotent Migration**: The script is safe to run multiple times. It uses `ON CONFLICT DO NOTHING` to skip duplicate records, so you can re-run it without creating duplicates or losing data.
+
+#### 4. Test the Migration
+
+```bash
+# Start the backend with PostgreSQL
+yarn backend:dev
+
+# Check GraphQL endpoint
+curl http://localhost:4000/graphql
+```
+
+### Docker Migration
+
+If using Docker:
+
+```bash
+# Start PostgreSQL and the application
+docker-compose up -d
+
+# The application will automatically connect to PostgreSQL
+```
+
+### Database Schema
+
+#### Tables Created
+
+1. **pod_deployed_events**
+   - `id` (SERIAL PRIMARY KEY)
+   - `eigenPod` (TEXT)
+   - `podOwner` (TEXT)
+   - `blockNumber` (INTEGER)
+   - `transactionHash` (TEXT)
+   - `logIndex` (INTEGER)
+   - `createdAt` (TIMESTAMP)
+
+2. **staked_eth_events**
+   - `id` (SERIAL PRIMARY KEY)
+   - `pubkey` (TEXT)
+   - `withdrawalCredentials` (TEXT)
+   - `amount` (TEXT)
+   - `signature` (TEXT)
+   - `depositIndex` (TEXT)
+   - `blockNumber` (INTEGER)
+   - `blockTimestamp` (INTEGER)
+   - `transactionHash` (TEXT)
+   - `logIndex` (INTEGER)
+   - `createdAt` (TIMESTAMP)
+
+#### Indexes Created
+
+- Block number indexes for both tables
+- Address/identifier indexes for efficient lookups
+- Timestamp indexes for time-based queries
+- Date index on materialized view for analytics queries
+
+#### Materialized View Created
+
+**staked_eth_analytics**
+- `blockNumber` (INTEGER) - Block number of the analytics data
+- `blockTimestamp` (INTEGER) - Block timestamp of the analytics data
+- `eventCount` (BIGINT) - Number of staking events in that block
+- `total` (NUMERIC) - Total sum of all deposit amounts in that block
+- `firstEventTimestamp` (INTEGER) - First event timestamp in that block
+- `lastEventTimestamp` (INTEGER) - Last event timestamp in that block
+
+This materialized view provides pre-computed block-level analytics for 100-1000x faster query performance compared to real-time aggregation. The `total` field contains the pre-calculated sum of all deposit amounts for each block.
+
+### Rollback Plan
+
+If you need to rollback to SQLite:
+
+1. Remove or comment out `DB_URL` from `.env`
+2. Restart the services
+3. The application will automatically fall back to SQLite
+
+### Performance Benefits
+
+PostgreSQL provides several advantages over SQLite:
+
+- ✅ **Concurrent Access**: Multiple processes can read/write simultaneously
+- ✅ **Better Performance**: Optimized for larger datasets
+- ✅ **Advanced Features**: Materialized views, better indexing
+- ✅ **Scalability**: Can handle more data and concurrent users
+- ✅ **Production Ready**: Better suited for production deployments
+
+### Troubleshooting
+
+#### Connection Issues
+
+```bash
+# Test PostgreSQL connection
+psql postgresql://sam:1qaz1qaz@localhost:5432/eigenlayer
+
+# Check if database exists
+\l
+
+# Check tables
+\dt
+```
+
+#### Migration Issues
+
+```bash
+# Check migration logs
+yarn migrate:postgres 2>&1 | tee migration.log
+
+# Verify data counts
+psql postgresql://sam:1qaz1qaz@localhost:5432/eigenlayer -c "SELECT COUNT(*) FROM pod_deployed_events;"
+psql postgresql://sam:1qaz1qaz@localhost:5432/eigenlayer -c "SELECT COUNT(*) FROM staked_eth_events;"
+```
+
+## 🔄 TypeORM Database Migrations
+
+The EigenLayer Dashboard uses TypeORM for database operations, providing better type safety, query building, and migration management.
+
+### Overview
+
+TypeORM provides:
+- ✅ **Type Safety**: Full TypeScript support with auto-completion
+- ✅ **Database Agnostic**: Works with SQLite, PostgreSQL, MySQL, etc.
+- ✅ **Query Builder**: Type-safe query building
+- ✅ **Migrations**: Built-in migration system
+- ✅ **Connection Pooling**: Better performance and resource management
+
+### TypeORM Commands
+
+```bash
+# Run TypeORM migrations (from root directory)
+yarn workspace @eigen-layer-dashboard/lib migrate:run
+
+# Or run from lib directory
+cd lib && yarn migrate:run
+
+# Generate new migration based on entity changes
+yarn workspace @eigen-layer-dashboard/lib migrate:generate src/migrations/NewMigration -d src/typeorm.config.ts
+
+# Create empty migration file
+yarn workspace @eigen-layer-dashboard/lib migrate:create src/migrations/NewMigration
+```
+
+### Migration Workflow
+
+#### 1. Initial Setup
+
+```bash
+# Install dependencies
+yarn install
+
+# Build the lib package
+yarn lib:build
+
+# Run initial migrations
+yarn workspace @eigen-layer-dashboard/lib migrate:run
+```
+
+#### 2. Creating New Migrations
+
+When you modify entities, generate a new migration:
+
+```bash
+# Generate migration based on entity changes
+yarn workspace @eigen-layer-dashboard/lib migrate:generate src/migrations/AddNewField -d src/typeorm.config.ts
+
+# Or create an empty migration for custom SQL
+yarn workspace @eigen-layer-dashboard/lib migrate:create src/migrations/CustomMigration
+```
+
+#### 3. Running Migrations
+
+```bash
+# Run all pending migrations
+yarn workspace @eigen-layer-dashboard/lib migrate:run
+```
+
+### TypeORM Configuration
+
+The TypeORM configuration automatically detects your database type:
+
+- **PostgreSQL**: Uses `DB_URL` environment variable
+- **SQLite**: Uses `DATABASE_PATH` environment variable (default: `./indexer.db`)
+
+### Entity Management
+
+Entities are defined in `lib/src/entities/`:
+
+- `PodDeployedEvent.entity.ts` - Maps to `pod_deployed_events` table
+- `StakedEthEvent.entity.ts` - Maps to `staked_eth_events` table
+
+### Troubleshooting TypeORM
+
+```bash
+# Check TypeORM connection
+yarn workspace @eigen-layer-dashboard/lib migrate:run
+
+# Check entity synchronization
+yarn lib:build && yarn backend:dev
+```
+
+#### Application Issues
+
+```bash
+# Check application logs
+docker-compose logs eigenlayer-dashboard
+
+# Test GraphQL endpoint
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ __schema { types { name } } }"}'
 ```
 
 ## 🚀 Deployment

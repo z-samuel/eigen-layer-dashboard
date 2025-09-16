@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { DatabaseService } from './database';
+import { IndexerDatabaseService } from './database';
 import { 
   getContractDeploymentBlock, 
   ContractDeploymentConfig,
@@ -16,7 +16,7 @@ const POD_DEPLOYED_ABI = [
 export class EventIndexer {
   private provider: ethers.JsonRpcProvider;
   private contract: ethers.Contract;
-  private database: DatabaseService;
+  private database: IndexerDatabaseService;
   private isRunning: boolean = false;
   private maxRetries: number;
   private retryDelayBase: number;
@@ -24,7 +24,7 @@ export class EventIndexer {
   constructor(rpcUrl: string, contractAddress: string, maxRetries: number = 10, retryDelayBase: number = 2) {
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.contract = new ethers.Contract(contractAddress, POD_DEPLOYED_ABI, this.provider);
-    this.database = new DatabaseService();
+    this.database = IndexerDatabaseService.getInstance();
     this.maxRetries = maxRetries;
     this.retryDelayBase = retryDelayBase;
   }
@@ -64,8 +64,8 @@ export class EventIndexer {
     console.log('Starting event indexer...');
 
     try {
-      // Get the last indexed block
-      const lastIndexedBlock = await this.database.getLastIndexedBlock();
+      // Get the last indexed block for PodDeployedEvents only
+      const lastIndexedBlock = await this.database.getLastPodDeployedBlock();
       console.log(`Last indexed block: ${lastIndexedBlock}`);
 
       // Get current block number
@@ -138,7 +138,7 @@ export class EventIndexer {
       while (currentStart <= endBlock) {
         const currentEnd = Math.min(currentStart + batchSize - 1, endBlock);
         
-        console.log(`Querying events from block ${currentStart} to ${currentEnd}`);
+        console.log(`Querying EigenPod deploy events from block ${currentStart} to ${currentEnd}`);
         
         const events = await this.queryEventsWithRetry(filter, currentStart, currentEnd);
         
@@ -149,13 +149,14 @@ export class EventIndexer {
           if ('args' in event && event.args && event.args.length >= 2) {
             const eigenPod = event.args[0];
             const podOwner = event.args[1];
-            await this.database.insertPodDeployedEvent(
+            await this.database.insertPodDeployedEvent({
               eigenPod,
               podOwner,
-              event.blockNumber,
-              event.transactionHash,
-              event.index
-            );
+              blockNumber: event.blockNumber,
+              transactionHash: event.transactionHash,
+              logIndex: event.index,
+              createdAt: new Date(),
+            });
           }
         }
         
@@ -183,7 +184,7 @@ export class EventIndexer {
   }> {
     const lastIndexedBlock = await this.database.getLastIndexedBlock();
     const currentBlock = await this.getBlockNumberWithRetry();
-    const totalEvents = await this.database.getTotalEventCount();
+    const totalEvents = await this.database.getTotalEvents();
     
     return {
       lastIndexedBlock,
